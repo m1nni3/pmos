@@ -27,6 +27,8 @@ export const api = {
   properties: {
     list: () => get<any[]>('/properties'),
     get: (id: string) => get<any>(`/properties/${id}`),
+    create: (data: any) => post('/properties', data),
+    update: (id: string, data: any) => put(`/properties/${id}`, data),
     units: (id: string) => get<any[]>(`/properties/${id}/units`),
   },
   contacts: {

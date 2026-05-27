@@ -59,6 +59,48 @@ export default {
         return json(results)
       }
 
+      // GET /api/property-details-schema — return column list for the form
+      if (method === 'GET' && pathname === '/api/property-details-schema') {
+        const { results } = await env.DB.prepare('PRAGMA table_info(property_details)').all()
+        return json(results)
+      }
+
+      if (method === 'POST' && pathname === '/api/properties') {
+        const id = crypto.randomUUID()
+        const detailsId = crypto.randomUUID()
+        const { name, address, scheme_name, unit_count, managing_agent_id, letting_agent_id, details } = body
+        await env.DB.prepare(
+          'INSERT INTO properties (id, name, address, scheme_name, unit_count, managing_agent_id, letting_agent_id) VALUES (?,?,?,?,?,?,?)'
+        ).bind(id, name, address, scheme_name ?? null, unit_count ?? 1, managing_agent_id ?? null, letting_agent_id ?? null).run()
+        if (details) {
+          await upsertDetails(env.DB, detailsId, id, details)
+        }
+        return json({ id, details_id: detailsId }, 201)
+      }
+
+      if (method === 'PUT' && pathname.match(/^\/api\/properties\/([^/]+)$/)) {
+        const id = pathname.split('/')[3]
+        const { name, address, scheme_name, unit_count, managing_agent_id, letting_agent_id, details } = body
+        const sets: string[] = []
+        const params: unknown[] = []
+        for (const k of ['name', 'address', 'scheme_name', 'unit_count', 'managing_agent_id', 'letting_agent_id'] as const) {
+          if (k in body) { sets.push(`${k} = ?`); params.push((body as any)[k] ?? null) }
+        }
+        if (sets.length > 0) {
+          params.push(id)
+          await env.DB.prepare(`UPDATE properties SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
+        }
+        if (details) {
+          const existing = await env.DB.prepare('SELECT id FROM property_details WHERE property_id = ?').bind(id).first()
+          if (existing) {
+            await upsertDetails(env.DB, (existing as any).id as string, id, details)
+          } else {
+            await upsertDetails(env.DB, crypto.randomUUID(), id, details)
+          }
+        }
+        return json({ ok: true })
+      }
+
       // ── Contacts ────────────────────────────────────────────────
       if (method === 'GET' && pathname === '/api/contacts') {
         const role = url.searchParams.get('role')
@@ -225,4 +267,25 @@ export default {
       return json({ error: 'Internal error', details: errorMessage }, 500)
     }
   },
+}
+
+async function upsertDetails(db: any, detailsId: string, propertyId: string, d: any) {
+  const cols = [
+    'unit_number','door_number','erf_number','scheme_number','size_sqm','bedrooms','bathrooms','parking_bays',
+    'suburb','township','lpi_code','purchase_date','purchase_price','current_market_value','title_deed_reference',
+    'owner_name','owner_id','registered_owner','municipality_name','municipal_valuation','municipal_valuation_year',
+    'municipal_account_number','municipal_paid_by','agency','managing_agent_name','portfolio_manager','agent_email',
+    'agent_phone','account_administrator','maintenance_manager','department_head','management_fee','payment_method',
+    'branch','branch_code','tenant_name','tenant_phone','tenant_email','tenant_notes','bc_name','bc_registration_number',
+    'bc_bank','bc_account_name','bc_branch','bc_branch_code','bc_levy_reference','bc_levy_payment_method',
+    'bc_contact_name','bc_contact_phone','bc_contact_email','bond_bank','bond_account_number','original_bond_amount',
+    'monthly_bond_payment','expected_payoff_date','insurer','broker','policy_number','policy_holder','geyser_excess',
+    'annual_renewal_date','insurance_contact','emergency_contact_name','emergency_contact_phone','emergency_contact_email',
+    'emergency_contact_notes',
+  ]
+  const sets = cols.map(c => `${c} = ?`).join(', ')
+  const vals = cols.map(c => d[c] ?? null)
+  await db.prepare(
+    `INSERT INTO property_details (id, property_id, ${cols.join(',')}) VALUES (?,?,${cols.map(() => '?').join(',')}) ON CONFLICT(property_id) DO UPDATE SET ${sets}`
+  ).bind(detailsId, propertyId, ...vals).run()
 }
