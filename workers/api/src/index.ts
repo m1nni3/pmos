@@ -7,11 +7,36 @@ export default {
     const url = new URL(request.url)
     const { pathname } = url
     const method = request.method
+    
+    // Add CORS headers
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Content-Type': 'application/json',
+    }
+    
+    // Handle CORS preflight
+    if (method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders })
+    }
+    
     const json = (data: unknown, status = 200) =>
-      new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } })
+      new Response(JSON.stringify(data), { status, headers: corsHeaders })
+    
     const body = method === 'POST' || method === 'PUT' ? await request.json().catch(() => ({})) : {}
 
     try {
+      // ── Health Check ────────────────────────────────────────────
+      if (method === 'GET' && pathname === '/api/health') {
+        try {
+          const result = await env.DB.prepare('SELECT 1').first()
+          return json({ status: 'ok', database: 'connected' })
+        } catch (err) {
+          return json({ status: 'error', database: 'disconnected', message: err instanceof Error ? err.message : 'Unknown error' }, 500)
+        }
+      }
+
       // ── Properties ──────────────────────────────────────────────
       if (method === 'GET' && pathname === '/api/properties') {
         const { results } = await env.DB.prepare('SELECT * FROM properties ORDER BY name').all()
@@ -60,20 +85,28 @@ export default {
 
       // ── Dashboard KPIs ───────────────────────────────────────────
       if (method === 'GET' && pathname === '/api/dashboard/kpis') {
-        const [props, units, contacts, openWO, pendingRecon] = await Promise.all([
-          env.DB.prepare('SELECT count(*) as c FROM properties').first(),
-          env.DB.prepare('SELECT count(*) as c FROM units').first(),
-          env.DB.prepare('SELECT count(*) as c FROM contacts').first(),
-          env.DB.prepare("SELECT count(*) as c FROM work_orders WHERE status = 'open'").first(),
-          env.DB.prepare("SELECT count(*) as c FROM reconciliation WHERE status = 'pending'").first(),
-        ])
-        return json({
-          properties: props?.c ?? 0,
-          units: units?.c ?? 0,
-          contacts: contacts?.c ?? 0,
-          openWorkOrders: openWO?.c ?? 0,
-          pendingRecon: pendingRecon?.c ?? 0,
-        })
+        try {
+          const [props, units, contacts, openWO, pendingRecon] = await Promise.all([
+            env.DB.prepare('SELECT count(*) as c FROM properties').first(),
+            env.DB.prepare('SELECT count(*) as c FROM units').first(),
+            env.DB.prepare('SELECT count(*) as c FROM contacts').first(),
+            env.DB.prepare("SELECT count(*) as c FROM work_orders WHERE status = 'open'").first(),
+            env.DB.prepare("SELECT count(*) as c FROM reconciliation WHERE status = 'pending'").first(),
+          ])
+          return json({
+            properties: props?.c ?? 0,
+            units: units?.c ?? 0,
+            contacts: contacts?.c ?? 0,
+            openWorkOrders: openWO?.c ?? 0,
+            pendingRecon: pendingRecon?.c ?? 0,
+          })
+        } catch (err) {
+          console.error('Dashboard KPI error:', err)
+          return json({ 
+            error: 'Failed to load dashboard KPIs',
+            details: err instanceof Error ? err.message : 'Unknown error'
+          }, 500)
+        }
       }
 
       // ── Ledger ──────────────────────────────────────────────────
@@ -177,7 +210,9 @@ export default {
 
       return json({ error: 'Not found' }, 404)
     } catch (e) {
-      return json({ error: e instanceof Error ? e.message : 'Internal error' }, 500)
+      const errorMessage = e instanceof Error ? e.message : 'Internal error'
+      console.error('API Error:', errorMessage, e)
+      return json({ error: 'Internal error', details: errorMessage }, 500)
     }
   },
 }
