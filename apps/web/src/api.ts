@@ -24,6 +24,9 @@ async function del(path: string): Promise<void> {
 }
 
 export const api = {
+  dashboard: {
+    get: () => get<any>('/dashboard'),
+  },
   properties: {
     list: () => get<any[]>('/properties'),
     get: (id: string) => get<any>(`/properties/${id}`),
@@ -31,14 +34,21 @@ export const api = {
     update: (id: string, data: any) => put(`/properties/${id}`, data),
     units: (id: string) => get<any[]>(`/properties/${id}/units`),
   },
+  propertyResource: {
+    list: (propertyId: string, resource: string) => get<any[]>(`/properties/${propertyId}/${resource}`),
+    create: (propertyId: string, resource: string, data: any) => post(`/properties/${propertyId}/${resource}`, data),
+    update: (propertyId: string, resource: string, id: string, data: any) => put(`/properties/${propertyId}/${resource}/${id}`, data),
+    remove: (propertyId: string, resource: string, id: string) => del(`/properties/${propertyId}/${resource}/${id}`),
+  },
+  history: {
+    list: (propertyId: string) => get<any[]>(`/properties/${propertyId}/history`),
+    create: (propertyId: string, data: any) => post(`/properties/${propertyId}/history`, data),
+  },
   contacts: {
     list: (role?: string) => get<any[]>(`/contacts${role ? `?role=${role}` : ''}`),
     create: (data: any) => post('/contacts', data),
     update: (id: string, data: any) => put(`/contacts/${id}`, data),
     remove: (id: string) => del(`/contacts/${id}`),
-  },
-  dashboard: {
-    kpis: () => get<{ properties: number; units: number; contacts: number; openWorkOrders: number; pendingRecon: number }>('/dashboard/kpis'),
   },
   ledger: {
     list: (source: string, propertyId: string) => get<any[]>(`/ledger/${source}?property_id=${propertyId}`),

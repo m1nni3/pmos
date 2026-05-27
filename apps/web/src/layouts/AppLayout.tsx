@@ -8,7 +8,7 @@ export default function AppLayout() {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Topbar />
-        <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <main style={{ flex: 1, overflowY: 'auto' }}>
           <Outlet />
         </main>
       </div>
