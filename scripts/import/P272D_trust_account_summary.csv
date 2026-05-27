@@ -1,0 +1,74 @@
+Date,Description,GL_Allocation,Expense,Income,Balance
+Feb 2023,Closing Shortfall Previous Month,,-44.40,,-44.40
+Feb 2023,Debtors Receipts,Debtors Control,,4975.00,4930.60
+Mar 2023,Debtors Receipts,Debtors Control,,4750.00,9680.60
+Mar 2023,Debtors Refund,Debtors Control,,3500.00,13180.60
+Apr 2023,Debtors Receipts,Debtors Control,,5500.00,18680.60
+Apr 2023,Debtors Refund,Debtors Control,,4950.00,23630.60
+May 2023,Debtors Receipts,Debtors Control,,5500.00,29130.60
+Jun 2023,Debtors Receipts,Debtors Control,,5472.85,34603.45
+Jul 2023,Debtors Receipts,Debtors Control,,5500.00,40103.45
+Aug 2023,Debtors Receipts,Debtors Control,,5500.00,45603.45
+Sep 2023,Debtors Receipts,Debtors Control,-5500.00,,40103.45
+Oct 2023,Debtors Receipts,Debtors Control,,5422.46,45525.91
+Nov 2023,Debtors Refund,Debtors Control,-465.56,,45060.35
+Dec 2023,Debtors Receipts,Debtors Control,,5440.32,50500.67
+Jan 2024,Debtors Receipts,Debtors Control,,5300.00,55800.67
+Feb 2024,Debtors Receipts,Debtors Control,,6000.00,61800.67
+Mar 2024,Debtors Receipts,Debtors Control,,5073.15,66873.82
+Apr 2024,Debtors Receipts,Debtors Control,,11264.07,78137.89
+Jun 2024,Debtors Receipts,Debtors Control,,5475.99,83613.88
+Jul 2024,Debtors Receipts,Debtors Control,,5500.00,89113.88
+Aug 2024,Debtors Receipts,Debtors Control,,5500.00,94613.88
+Sep 2024,Debtors Receipts,Debtors Control,,5500.00,100113.88
+Oct 2024,Debtors Receipts,Debtors Control,,5500.00,105613.88
+Nov 2024,Debtors Receipts,Debtors Control,,5897.50,111511.38
+Dec 2024,Debtors Receipts,Debtors Control,,6226.51,117737.89
+Jan 2025,Debtors Receipts,Debtors Control,,6050.00,123787.89
+Feb 2025,Debtors Receipts,Debtors Control,,6050.00,129837.89
+Mar 2025,Debtors Receipts,Debtors Control,,12032.29,141870.18
+May 2025,Debtors Receipts,Debtors Control,,6182.39,148052.57
+Jun 2025,Debtors Receipts,Debtors Control,,12038.00,160090.57
+Jul 2025,Debtors Receipts,Debtors Control,,6047.32,166137.89
+Aug 2025,Debtors Receipts,Debtors Control,,6050.00,172187.89
+Oct 2025,Debtors Refund,Debtors Control,,5439.16,177627.05
+Feb 2023,Creditors Payments,Creditors Control,-512.90,,177114.15
+Mar 2023,Creditors Payments (see below),Creditors Control,-6507.50,,170606.65
+Apr 2023,Creditors Payments (see below),Creditors Control,-8920.02,,161686.63
+May 2023,Creditors Payments (see below),Creditors Control,-5176.04,,156510.59
+Jun 2023,Creditors Payments (see below),Creditors Control,-6523.92,,149986.67
+Jul 2023,Creditors Payments (see below),Creditors Control,-5470.43,,144516.24
+Aug 2023,Creditors Payments (see below),Creditors Control,-5560.02,,138956.22
+Sep 2023,Creditors Payments,Creditors Control,-52.50,,138903.72
+Oct 2023,Creditors Payments,Creditors Control,-556.37,,138347.35
+Nov 2023,Creditors Payments (see below),Creditors Control,-5471.31,,132876.04
+Dec 2023,Creditors Payments (see below),Creditors Control,-5543.45,,127332.59
+Jan 2024,Creditors Payments (see below),Creditors Control,-5194.00,,122138.59
+Feb 2024,Creditors Payments (see below),Creditors Control,-5149.08,,116989.51
+Mar 2024,Creditors Payments (see below),Creditors Control,-6219.24,,110770.27
+Apr 2024,Creditors Payments (see below),Creditors Control,-6008.37,,104761.90
+May 2024,Creditors Payments (see below),Creditors Control,-5255.70,,99506.20
+Jun 2024,Creditors Payments (see below),Creditors Control,-5475.99,,94030.21
+Jul 2024,Creditors Payments (see below),Creditors Control,-5500.00,,88530.21
+Aug 2024,Creditors Payments (see below),Creditors Control,-5500.00,,83030.21
+Sep 2024,Creditors Payments (see below),Creditors Control,-5500.00,,77530.21
+Oct 2024,Creditors Payments (see below),Creditors Control,-5500.00,,72030.21
+Nov 2024,Creditors Payments (see below),Creditors Control,-5897.50,,66132.71
+Dec 2024,Creditors Payments (see below),Creditors Control,-6226.51,,59906.20
+Jan 2025,Creditors Payments (see below),Creditors Control,-6050.00,,53856.20
+Feb 2025,Creditors Payments (see below),Creditors Control,-6050.00,,47806.20
+Mar 2025,Creditors Payments (see below),Creditors Control,-6600.37,,41205.83
+Apr 2025,Creditors Payments (see below),Creditors Control,-11409.38,,29796.45
+May 2025,Creditors Payments,Creditors Control,-626.28,,29170.17
+Jun 2025,Creditors Payments (see below),Creditors Control,-4392.41,,24777.76
+Jul 2025,Creditors Payments (see below),Creditors Control,-7770.80,,17006.96
+Aug 2025,Creditors Payments (see below),Creditors Control,-6047.58,,10959.38
+Sep 2025,Creditors Payments (see below),Creditors Control,-5490.98,,5468.40
+Oct 2025,Creditors Payments,Creditors Control,-557.90,,4910.50
+Feb 2023,Bank Charges,Bank Control,-4.84,,4905.66
+Mar 2023,Bank Charges,Bank Control,-9.78,,4895.88
+Jun 2023,Bank Charges,Bank Control,-2.42,,4893.46
+Jun 2025,Bank Charges,Bank Control,-7.36,,4886.10
+Jul 2025,Bank Charges,Bank Control,-2.42,,4883.68
+Aug 2025,Bank Charges,Bank Control,-2.42,,4881.26
+Sep 2025,Bank Charges,Bank Control,-2.42,,4878.84

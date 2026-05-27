@@ -248,8 +248,22 @@ export default {
       if (method === 'GET' && pathname.match(/^\/api\/ledger\/(rental_ledger|levy_ledger|municipality_ledger|bank_ledger)$/)) {
         const source = pathname.split('/')[3]
         const propertyId = url.searchParams.get('property_id')
-        const { results } = await env.DB.prepare(`SELECT * FROM ${source} WHERE property_id = ? ORDER BY date DESC LIMIT 200`).bind(propertyId).all()
+        const { results } = await env.DB.prepare(`SELECT * FROM ${source} WHERE property_id = ? ORDER BY date DESC LIMIT 1000`).bind(propertyId).all()
         return json(results)
+      }
+
+      if (method === 'POST' && pathname.match(/^\/api\/ledger\/(rental_ledger|levy_ledger|municipality_ledger|bank_ledger)$/)) {
+        const source = pathname.split('/')[3]
+        const entries = Array.isArray(body) ? body : [body]
+        const stmt = env.DB.prepare(
+          `INSERT OR IGNORE INTO ${source} (id, property_id, date, description, debit, credit, balance, reference) VALUES (?,?,?,?,?,?,?,?)`
+        )
+        const batch = entries.map(e =>
+          stmt.bind(crypto.randomUUID(), e.property_id, e.date, e.description, e.debit ?? 0, e.credit ?? 0, e.balance ?? 0, e.reference ?? null)
+        )
+        const results = await env.DB.batch(batch)
+        const inserted = results.filter(r => r.meta.changes > 0).length
+        return json({ inserted, total: entries.length, skipped: entries.length - inserted }, 201)
       }
 
       // ── Work Orders ───────────────────────────────────────────
