@@ -10,7 +10,7 @@ export default function Portfolio() {
   const [editData, setEditData] = useState<any>(null)
 
   function loadList() {
-    api.properties.list().then(data => setProps(data))
+    api.properties.list().then(data => { setProps(data); setLoading(false) }).catch(() => setLoading(false))
   }
 
   useEffect(() => { loadList() }, [])
