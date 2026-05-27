@@ -26,6 +26,7 @@ async function del(path: string): Promise<void> {
 export const api = {
   properties: {
     list: () => get<any[]>('/properties'),
+    get: (id: string) => get<any>(`/properties/${id}`),
     units: (id: string) => get<any[]>(`/properties/${id}/units`),
   },
   contacts: {

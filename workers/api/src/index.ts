@@ -43,6 +43,16 @@ export default {
         return json(results)
       }
 
+      if (method === 'GET' && pathname.match(/^\/api\/properties\/([^/]+)$/)) {
+        const id = pathname.split('/')[3]
+        const [prop, details] = await Promise.all([
+          env.DB.prepare('SELECT * FROM properties WHERE id = ?').bind(id).first(),
+          env.DB.prepare('SELECT * FROM property_details WHERE property_id = ?').bind(id).first(),
+        ])
+        if (!prop) return json({ error: 'Not found' }, 404)
+        return json({ ...prop as object, details: details ?? null })
+      }
+
       if (method === 'GET' && pathname.match(/^\/api\/properties\/([^/]+)\/units$/)) {
         const id = pathname.split('/')[3]
         const { results } = await env.DB.prepare('SELECT * FROM units WHERE property_id = ? ORDER BY unit_number').bind(id).all()
