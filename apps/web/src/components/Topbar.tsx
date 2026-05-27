@@ -2,7 +2,6 @@ import { useAuth } from '../context/AuthContext'
 
 export default function Topbar() {
   const { user, signOut } = useAuth()
-
   return (
     <header style={s.bar}>
       <span style={s.title}>Property Management Oversight System</span>
