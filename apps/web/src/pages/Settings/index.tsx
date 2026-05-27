@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
 interface Config {
-  supabaseUrl: string
+  apiUrl: string
   appName: string
   defaultLocale: string
 }
 
 const DEFAULTS: Config = {
-  supabaseUrl:   import.meta.env.VITE_SUPABASE_URL ?? '',
+  apiUrl:         '',
   appName:       'PMOS',
   defaultLocale: 'en-ZA',
 }
@@ -29,7 +29,7 @@ export default function Settings() {
 
   const fields: { key: keyof Config; label: string; readonly?: boolean }[] = [
     { key: 'appName',       label: 'Application Name' },
-    { key: 'supabaseUrl',   label: 'Supabase URL', readonly: true },
+    { key: 'apiUrl',   label: 'API URL', readonly: true },
     { key: 'defaultLocale', label: 'Default Locale' },
   ]
 
@@ -58,15 +58,9 @@ export default function Settings() {
       </div>
 
       <div style={s.card}>
-        <h2 style={s.h2}>Database</h2>
-        <p style={s.meta}>Connected to <strong>{cfg.supabaseUrl || '—'}</strong></p>
-        <p style={s.meta}>Migrations applied via Supabase MCP. Manage schema in the Supabase dashboard.</p>
-      </div>
-
-      <div style={s.card}>
         <h2 style={s.h2}>About</h2>
         <p style={s.meta}>PMOS — Property Management Oversight System</p>
-        <p style={s.meta}>Stack: React · TypeScript · Supabase · Netlify</p>
+        <p style={s.meta}>Stack: React · TypeScript · Cloudflare Pages · D1</p>
       </div>
     </div>
   )

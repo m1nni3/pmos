@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import type { Property } from '../../types/property'
+import { api } from '../../api'
 
 type ReportType = 'portfolio' | 'cashflow' | 'reconciliation' | 'maintenance'
 
@@ -12,43 +11,22 @@ const REPORTS: { key: ReportType; label: string; desc: string }[] = [
 ]
 
 export default function Reports() {
-  const [properties, setProperties] = useState<Property[]>([])
+  const [properties, setProperties] = useState<any[]>([])
   const [propertyId, setPropertyId] = useState('all')
   const [type, setType] = useState<ReportType>('portfolio')
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    supabase.from('properties').select('id,name').order('name').then(({ data }) => {
-      setProperties((data ?? []) as Property[])
-    })
+    api.properties.list().then(data => setProperties(data))
   }, [])
 
   async function run() {
     setLoading(true)
     setData([])
-    const pid = propertyId !== 'all' ? propertyId : null
-
-    let q: any
-    if (type === 'portfolio') {
-      q = supabase.from('properties').select('name, address, scheme_name, unit_count, created_at')
-      if (pid) q = q.eq('id', pid)
-    } else if (type === 'cashflow') {
-      q = supabase.from('rental_ledger').select('date, description, debit, credit, balance, reference')
-      if (pid) q = q.eq('property_id', pid)
-      q = q.order('date', { ascending: false }).limit(500)
-    } else if (type === 'reconciliation') {
-      q = supabase.from('reconciliation').select('period, rental_amount, bank_amount, variance, status, notes')
-      if (pid) q = q.eq('property_id', pid)
-      q = q.order('period', { ascending: false })
-    } else {
-      q = supabase.from('work_orders').select('raised_at, description, status, cost, completed_at')
-      if (pid) q = q.eq('property_id', pid)
-      q = q.order('raised_at', { ascending: false })
-    }
-
-    const { data: rows } = await q
-    setData(rows ?? [])
+    const pid = propertyId !== 'all' ? propertyId : undefined
+    const rows = await api.reports.run(type, pid)
+    setData(rows)
     setLoading(false)
   }
 

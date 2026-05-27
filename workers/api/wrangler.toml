@@ -1,0 +1,8 @@
+name = "pmos-api"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pmos-db"
+database_id = "e5543a8a-bfb9-4d27-aa6b-fb3d7108690e"

@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import type { Property } from '../../types/property'
+import { api } from '../../api'
 
 export default function Portfolio() {
-  const [props, setProps] = useState<Property[]>([])
-  const [selected, setSelected] = useState<Property | null>(null)
+  const [props, setProps] = useState<any[]>([])
+  const [selected, setSelected] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('properties').select('*').order('name').then(({ data }) => {
-      setProps(data ?? [])
-      setLoading(false)
-    })
+    api.properties.list().then(data => { setProps(data); setLoading(false) })
   }, [])
 
   if (loading) return <p style={s.muted}>Loading…</p>
@@ -40,13 +36,11 @@ export default function Portfolio() {
   )
 }
 
-function PropertyDetail({ property: p }: { property: Property }) {
+function PropertyDetail({ property: p }: { property: any }) {
   const [units, setUnits] = useState<any[]>([])
 
   useEffect(() => {
-    supabase.from('units').select('*').eq('property_id', p.id).order('unit_number').then(({ data }) => {
-      setUnits(data ?? [])
-    })
+    api.properties.units(p.id).then(data => setUnits(data))
   }, [p.id])
 
   return (

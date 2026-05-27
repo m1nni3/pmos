@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import type { Property } from '../../types/property'
-import type { LedgerEntry } from '../../types/ledger'
+import { api } from '../../api'
 
 type Source = 'rental_ledger' | 'levy_ledger' | 'municipality_ledger' | 'bank_ledger'
 
@@ -13,33 +11,23 @@ const SOURCES: { key: Source; label: string }[] = [
 ]
 
 export default function Finance() {
-  const [properties, setProperties] = useState<Property[]>([])
+  const [properties, setProperties] = useState<any[]>([])
   const [propertyId, setPropertyId] = useState('')
   const [source, setSource] = useState<Source>('rental_ledger')
-  const [entries, setEntries] = useState<LedgerEntry[]>([])
+  const [entries, setEntries] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    supabase.from('properties').select('id,name').order('name').then(({ data }) => {
-      const list = (data ?? []) as Property[]
-      setProperties(list)
-      if (list.length) setPropertyId(list[0].id)
+    api.properties.list().then(data => {
+      setProperties(data)
+      if (data.length) setPropertyId(data[0].id)
     })
   }, [])
 
   useEffect(() => {
     if (!propertyId) return
     setLoading(true)
-    supabase
-      .from(source)
-      .select('*')
-      .eq('property_id', propertyId)
-      .order('date', { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        setEntries((data ?? []) as LedgerEntry[])
-        setLoading(false)
-      })
+    api.ledger.list(source, propertyId).then(data => { setEntries(data); setLoading(false) })
   }, [propertyId, source])
 
   const totalDebit  = entries.reduce((s, e) => s + Number(e.debit),  0)

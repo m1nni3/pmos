@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import type { Property } from '../../types/property'
-import type { ReconciliationRecord, ReconciliationStatus } from '../../types/reconciliation'
+import { api } from '../../api'
 
-const STATUS_COLORS: Record<ReconciliationStatus, string> = {
+type ReconStatus = 'matched' | 'unmatched' | 'exception' | 'pending'
+
+const STATUS_COLORS: Record<ReconStatus, string> = {
   matched:   '#22c55e',
   unmatched: '#f59e0b',
   exception: '#ef4444',
@@ -11,27 +11,24 @@ const STATUS_COLORS: Record<ReconciliationStatus, string> = {
 }
 
 export default function Reconciliation() {
-  const [properties, setProperties] = useState<Property[]>([])
+  const [properties, setProperties] = useState<any[]>([])
   const [propertyId, setPropertyId] = useState('')
-  const [filter, setFilter] = useState<ReconciliationStatus | 'all'>('all')
-  const [records, setRecords] = useState<ReconciliationRecord[]>([])
+  const [filter, setFilter] = useState<ReconStatus | 'all'>('all')
+  const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [editing, setEditing] = useState<ReconciliationRecord | null>(null)
+  const [editing, setEditing] = useState<any | null>(null)
 
   useEffect(() => {
-    supabase.from('properties').select('id,name').order('name').then(({ data }) => {
-      const list = (data ?? []) as Property[]
-      setProperties(list)
-      if (list.length) setPropertyId(list[0].id)
+    api.properties.list().then(data => {
+      setProperties(data)
+      if (data.length) setPropertyId(data[0].id)
     })
   }, [])
 
   useEffect(() => {
     if (!propertyId) return
     setLoading(true)
-    let q = supabase.from('reconciliation').select('*').eq('property_id', propertyId).order('period', { ascending: false })
-    if (filter !== 'all') q = q.eq('status', filter)
-    q.then(({ data }) => { setRecords((data ?? []) as ReconciliationRecord[]); setLoading(false) })
+    api.reconciliation.list(propertyId, filter).then(data => { setRecords(data); setLoading(false) })
   }, [propertyId, filter])
 
   const counts = records.reduce((acc, r) => {
@@ -40,13 +37,13 @@ export default function Reconciliation() {
   }, {} as Record<string, number>)
 
   async function saveNote(id: string, notes: string) {
-    await supabase.from('reconciliation').update({ notes }).eq('id', id)
+    await api.reconciliation.update(id, { notes })
     setRecords(prev => prev.map(r => r.id === id ? { ...r, notes } : r))
     setEditing(null)
   }
 
-  async function setStatus(id: string, status: ReconciliationStatus) {
-    await supabase.from('reconciliation').update({ status }).eq('id', id)
+  async function setStatus(id: string, status: ReconStatus) {
+    await api.reconciliation.update(id, { status })
     setRecords(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
 
@@ -63,7 +60,7 @@ export default function Reconciliation() {
         {(['all', 'matched', 'unmatched', 'exception', 'pending'] as const).map(f => (
           <button
             key={f}
-            style={{ ...s.pill, ...(filter === f ? s.pillActive : {}), ...(f !== 'all' ? { borderColor: STATUS_COLORS[f as ReconciliationStatus] } : {}) }}
+            style={{ ...s.pill, ...(filter === f ? s.pillActive : {}), ...(f !== 'all' ? { borderColor: STATUS_COLORS[f as ReconStatus] } : {}) }}
             onClick={() => setFilter(f)}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -96,11 +93,11 @@ export default function Reconciliation() {
                       </td>
                       <td style={s.td}>
                         <select
-                          style={{ ...s.sel, borderColor: STATUS_COLORS[r.status], color: STATUS_COLORS[r.status], fontSize: '0.78rem' }}
+                          style={{ ...s.sel, borderColor: STATUS_COLORS[r.status as ReconStatus], color: STATUS_COLORS[r.status as ReconStatus], fontSize: '0.78rem' }}
                           value={r.status}
-                          onChange={e => setStatus(r.id, e.target.value as ReconciliationStatus)}
+                          onChange={e => setStatus(r.id, e.target.value as ReconStatus)}
                         >
-                          {(['matched','unmatched','exception','pending'] as ReconciliationStatus[]).map(st =>
+                          {(['matched','unmatched','exception','pending'] as ReconStatus[]).map(st =>
                             <option key={st} value={st}>{st}</option>
                           )}
                         </select>
@@ -123,7 +120,7 @@ export default function Reconciliation() {
   )
 }
 
-function NoteEditor({ record, onSave, onCancel }: { record: ReconciliationRecord; onSave: (id: string, n: string) => void; onCancel: () => void }) {
+function NoteEditor({ record, onSave, onCancel }: { record: any; onSave: (id: string, n: string) => void; onCancel: () => void }) {
   const [val, setVal] = useState(record.notes ?? '')
   return (
     <span style={{ display: 'flex', gap: 4 }}>

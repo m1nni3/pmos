@@ -1,40 +1,12 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-
-interface KPI {
-  properties: number
-  units: number
-  contacts: number
-  openWorkOrders: number
-  pendingRecon: number
-}
+import { api } from '../../api'
 
 export default function Dashboard() {
-  const [kpi, setKpi] = useState<KPI | null>(null)
+  const [kpi, setKpi] = useState<{ properties: number; units: number; contacts: number; openWorkOrders: number; pendingRecon: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [props, units, contacts, workOrders, recon] = await Promise.all([
-          supabase.from('properties').select('id', { count: 'exact', head: true }),
-          supabase.from('units').select('id', { count: 'exact', head: true }),
-          supabase.from('contacts').select('id', { count: 'exact', head: true }),
-          supabase.from('work_orders').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-          supabase.from('reconciliation').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        ])
-        setKpi({
-          properties: props.count ?? 0,
-          units: units.count ?? 0,
-          contacts: contacts.count ?? 0,
-          openWorkOrders: workOrders.count ?? 0,
-          pendingRecon: recon.count ?? 0,
-        })
-      } catch (e) {
-        setError('Failed to load dashboard data')
-      }
-    }
-    load()
+    api.dashboard.kpis().then(setKpi).catch(() => setError('Failed to load dashboard data'))
   }, [])
 
   if (error) return <p style={s.error}>{error}</p>

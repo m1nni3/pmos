@@ -1,23 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
-import type { Property } from '../../types/property'
+import { api } from '../../api'
 
 type WOStatus = 'open' | 'in_progress' | 'completed' | 'cancelled'
-
-interface WorkOrder {
-  id: string
-  property_id: string
-  unit_id: string | null
-  contractor_id: string | null
-  description: string
-  status: WOStatus
-  raised_at: string
-  completed_at: string | null
-  cost: number | null
-}
-
-interface Contractor { id: string; name: string }
-interface Unit { id: string; unit_number: string }
 
 const STATUS_COLORS: Record<WOStatus, string> = {
   open:        '#f59e0b',
@@ -29,40 +13,36 @@ const STATUS_COLORS: Record<WOStatus, string> = {
 const STATUSES: WOStatus[] = ['open', 'in_progress', 'completed', 'cancelled']
 
 export default function Maintenance() {
-  const [properties, setProperties]   = useState<Property[]>([])
+  const [properties, setProperties]   = useState<any[]>([])
   const [propertyId, setPropertyId]   = useState('')
-  const [units, setUnits]             = useState<Unit[]>([])
-  const [contractors, setContractors] = useState<Contractor[]>([])
-  const [orders, setOrders]           = useState<WorkOrder[]>([])
+  const [units, setUnits]             = useState<any[]>([])
+  const [contractors, setContractors] = useState<any[]>([])
+  const [orders, setOrders]           = useState<any[]>([])
   const [filter, setFilter]           = useState<WOStatus | 'all'>('all')
   const [loading, setLoading]         = useState(false)
-  const [form, setForm]               = useState<Partial<WorkOrder> | null>(null)
+  const [form, setForm]               = useState<Partial<any> | null>(null)
   const [saving, setSaving]           = useState(false)
 
   useEffect(() => {
     Promise.all([
-      supabase.from('properties').select('id,name').order('name'),
-      supabase.from('contacts').select('id,name').eq('role', 'contractor').order('name'),
-    ]).then(([p, c]) => {
-      const props = (p.data ?? []) as Property[]
+      api.properties.list(),
+      api.contacts.list('contractor'),
+    ]).then(([props, conts]) => {
       setProperties(props)
-      setContractors((c.data ?? []) as Contractor[])
+      setContractors(conts)
       if (props.length) setPropertyId(props[0].id)
     })
   }, [])
 
   useEffect(() => {
     if (!propertyId) return
-    supabase.from('units').select('id,unit_number').eq('property_id', propertyId).order('unit_number')
-      .then(({ data }) => setUnits((data ?? []) as Unit[]))
+    api.properties.units(propertyId).then(data => setUnits(data))
     fetchOrders()
   }, [propertyId, filter])
 
   function fetchOrders() {
     setLoading(true)
-    let q = supabase.from('work_orders').select('*').eq('property_id', propertyId).order('raised_at', { ascending: false })
-    if (filter !== 'all') q = q.eq('status', filter)
-    q.then(({ data }) => { setOrders((data ?? []) as WorkOrder[]); setLoading(false) })
+    api.workOrders.list(propertyId, filter).then(data => { setOrders(data); setLoading(false) })
   }
 
   async function save() {
@@ -70,11 +50,11 @@ export default function Maintenance() {
     setSaving(true)
     const payload = { ...form, property_id: propertyId }
     if (form.id) {
-      const { data } = await supabase.from('work_orders').update(payload).eq('id', form.id).select().single()
-      setOrders(prev => prev.map(o => o.id === form.id ? data as WorkOrder : o))
+      const data = await api.workOrders.update(form.id, payload)
+      setOrders(prev => prev.map(o => o.id === form.id ? data : o))
     } else {
-      const { data } = await supabase.from('work_orders').insert({ status: 'open', ...payload }).select().single()
-      setOrders(prev => [data as WorkOrder, ...prev])
+      const data = await api.workOrders.create({ status: 'open', ...payload })
+      setOrders(prev => [data, ...prev])
     }
     setSaving(false)
     setForm(null)
@@ -82,7 +62,7 @@ export default function Maintenance() {
 
   async function updateStatus(id: string, status: WOStatus) {
     const extra = status === 'completed' ? { completed_at: new Date().toISOString() } : {}
-    await supabase.from('work_orders').update({ status, ...extra }).eq('id', id)
+    await api.workOrders.update(id, { status, ...extra })
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status, ...extra } : o))
   }
 
@@ -172,7 +152,7 @@ export default function Maintenance() {
                       <td style={{ ...s.td, textAlign: 'right' }}>{o.cost != null ? `R ${Number(o.cost).toLocaleString('en-ZA')}` : '—'}</td>
                       <td style={s.td}>
                         <select
-                          style={{ ...s.sel, borderColor: STATUS_COLORS[o.status], color: STATUS_COLORS[o.status], fontSize: '0.78rem' }}
+                          style={{ ...s.sel, borderColor: STATUS_COLORS[o.status as WOStatus], color: STATUS_COLORS[o.status as WOStatus], fontSize: '0.78rem' }}
                           value={o.status}
                           onChange={e => updateStatus(o.id, e.target.value as WOStatus)}
                         >

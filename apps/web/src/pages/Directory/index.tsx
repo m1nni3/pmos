@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { api } from '../../api'
 import type { Contact, ContactRole } from '../../types/contact'
 
 const TABS: { key: ContactRole; label: string }[] = [
@@ -21,18 +21,17 @@ export default function Directory() {
 
   useEffect(() => {
     setLoading(true)
-    supabase.from('contacts').select('*').eq('role', role).order('name')
-      .then(({ data }) => { setContacts((data ?? []) as Contact[]); setLoading(false) })
+    api.contacts.list(role).then(data => { setContacts(data as Contact[]); setLoading(false) })
   }, [role])
 
   async function save() {
     if (!form?.name?.trim()) return
     setSaving(true)
     if (form.id) {
-      const { data } = await supabase.from('contacts').update(form).eq('id', form.id).select().single()
+      const data = await api.contacts.update(form.id, form)
       setContacts(prev => prev.map(c => c.id === form.id ? data as Contact : c))
     } else {
-      const { data } = await supabase.from('contacts').insert({ ...EMPTY, ...form, role }).select().single()
+      const data = await api.contacts.create({ ...EMPTY, ...form, role })
       setContacts(prev => [...prev, data as Contact])
     }
     setSaving(false)
@@ -41,7 +40,7 @@ export default function Directory() {
 
   async function remove(id: string) {
     if (!confirm('Delete this contact?')) return
-    await supabase.from('contacts').delete().eq('id', id)
+    await api.contacts.remove(id)
     setContacts(prev => prev.filter(c => c.id !== id))
   }
 
