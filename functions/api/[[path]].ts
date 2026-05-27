@@ -1,6 +1,6 @@
 const API_WORKER = 'https://pmos-api.dawson-edc.workers.dev'
 
-export async function onRequest(context: { request: Request }): Promise<Response> {
+export async function onRequest(context) {
   const url = new URL(context.request.url)
   const apiUrl = API_WORKER + url.pathname + url.search
 
