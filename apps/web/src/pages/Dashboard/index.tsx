@@ -4,13 +4,29 @@ import { api } from '../../api'
 export default function Dashboard() {
   const [kpi, setKpi] = useState<{ properties: number; units: number; contacts: number; openWorkOrders: number; pendingRecon: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.dashboard.kpis().then(setKpi).catch(() => setError('Failed to load dashboard data'))
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await api.dashboard.kpis()
+        setKpi(data)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+        console.error('Dashboard API Error:', err)
+        setError(`Failed to load dashboard data: ${errorMessage}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
   }, [])
 
   if (error) return <p style={s.error}>{error}</p>
-  if (!kpi) return <p style={s.muted}>Loading…</p>
+  if (loading || !kpi) return <p style={s.muted}>Loading…</p>
 
   const tiles: { label: string; value: number; warn?: boolean }[] = [
     { label: 'Properties',      value: kpi.properties },
