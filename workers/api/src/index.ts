@@ -248,7 +248,9 @@ export default {
       if (method === 'GET' && pathname.match(/^\/api\/ledger\/(rental_ledger|levy_ledger|municipality_ledger|bank_ledger)$/)) {
         const source = pathname.split('/')[3]
         const propertyId = url.searchParams.get('property_id')
-        const { results } = await env.DB.prepare(`SELECT * FROM ${source} WHERE property_id = ? ORDER BY date DESC LIMIT 1000`).bind(propertyId).all()
+        const { results } = propertyId === 'all'
+          ? await env.DB.prepare(`SELECT * FROM ${source} ORDER BY date DESC LIMIT 1000`).all()
+          : await env.DB.prepare(`SELECT * FROM ${source} WHERE property_id = ? ORDER BY date DESC LIMIT 1000`).bind(propertyId).all()
         return json(results)
       }
 
@@ -266,15 +268,36 @@ export default {
         return json({ inserted, total: entries.length, skipped: entries.length - inserted }, 201)
       }
 
+      if (method === 'DELETE' && pathname.match(/^\/api\/ledger\/(rental_ledger|levy_ledger|municipality_ledger|bank_ledger)$/)) {
+        const source = pathname.split('/')[3]
+        const propertyId = url.searchParams.get('property_id')
+        if (!propertyId) return json({ error: 'property_id required' }, 400)
+        if (propertyId === 'all') {
+          await env.DB.prepare(`DELETE FROM ${source}`).run()
+          return json({ ok: true, deleted: 'all' })
+        }
+        const { meta } = await env.DB.prepare(`DELETE FROM ${source} WHERE property_id = ?`).bind(propertyId).run()
+        return json({ ok: true, deleted: meta.changes })
+      }
+
+      if (method === 'DELETE' && pathname.match(/^\/api\/ledger\/(rental_ledger|levy_ledger|municipality_ledger|bank_ledger)\/([^/]+)$/)) {
+        const source = pathname.split('/')[3]
+        const id = pathname.split('/')[4]
+        const { meta } = await env.DB.prepare(`DELETE FROM ${source} WHERE id = ?`).bind(id).run()
+        if (!meta.changes) return json({ error: 'Not found' }, 404)
+        return json({ ok: true, deleted: 1 })
+      }
+
       // ── Work Orders ───────────────────────────────────────────
       if (method === 'GET' && pathname === '/api/work-orders') {
         const propertyId = url.searchParams.get('property_id')
         const status = url.searchParams.get('status')
-        let q = 'SELECT * FROM work_orders WHERE property_id = ?'
-        const params = [propertyId]
-        if (status && status !== 'all') { q += ' AND status = ?'; params.push(status) }
-        q += ' ORDER BY raised_at DESC'
-        const { results } = await env.DB.prepare(q).bind(...params).all()
+        const clauses: string[] = []
+        const params: unknown[] = []
+        if (propertyId && propertyId !== 'all') { clauses.push('property_id = ?'); params.push(propertyId) }
+        if (status && status !== 'all') { clauses.push('status = ?'); params.push(status) }
+        const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''
+        const { results } = await env.DB.prepare(`SELECT * FROM work_orders${where} ORDER BY raised_at DESC`).bind(...params).all()
         return json(results)
       }
 
@@ -304,11 +327,14 @@ export default {
       if (method === 'GET' && pathname === '/api/reconciliation') {
         const propertyId = url.searchParams.get('property_id')
         const status = url.searchParams.get('status')
-        let q = 'SELECT r.*, (coalesce(r.bank_amount,0) - coalesce(r.rental_amount,0)) as variance FROM reconciliation r WHERE property_id = ?'
-        const params = [propertyId]
-        if (status && status !== 'all') { q += ' AND r.status = ?'; params.push(status) }
-        q += ' ORDER BY r.period DESC'
-        const { results } = await env.DB.prepare(q).bind(...params).all()
+        const clauses: string[] = []
+        const params: unknown[] = []
+        if (propertyId && propertyId !== 'all') { clauses.push('r.property_id = ?'); params.push(propertyId) }
+        if (status && status !== 'all') { clauses.push('r.status = ?'); params.push(status) }
+        const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''
+        const { results } = await env.DB.prepare(
+          `SELECT r.*, (coalesce(r.bank_amount,0) - coalesce(r.rental_amount,0)) as variance FROM reconciliation r${where} ORDER BY r.period DESC`
+        ).bind(...params).all()
         return json(results)
       }
 

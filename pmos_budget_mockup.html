@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Mockup — Net vs Categories</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #f8f6f0;
+  color: #1a2744;
+  padding: 2rem;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
+}
+.subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+@media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
+
+.frame {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.frame-header {
+  padding: 1rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.frame-body { padding: 1.25rem; }
+
+.picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 1.25rem;
+}
+.picker-item {
+  padding: 0.35rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: default;
+  background: #f1f5f9;
+  color: #64748b;
+}
+.picker-item.active { background: #1a2744; color: #fff; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+thead th {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+tbody td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr.subtotal td { border-top: 1px solid #e2e8f0; font-weight: 700; background: #f8fafc; }
+
+.fmt { font-variant-numeric: tabular-nums; text-align: right; }
+.pos { color: #16a34a; }
+.neg { color: #dc2626; }
+.budget { color: #1a2744; }
+.actual { color: #64748b; }
+
+.tag {
+  display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px;
+  font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.tag-green { background: #dcfce7; color: #166534; }
+.tag-amber { background: #fef3c7; color: #92400e; }
+.tag-blue  { background: #dbeafe; color: #1e40af; }
+
+.callout {
+  background: #fff;
+  border-left: 4px solid #1a2744;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 2rem 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Budget: Two Options</h1>
+  <p class="subtitle">Both use the same data from your spreadsheet. The only difference is how much detail the P&amp;L page shows.</p>
+
+  <div class="pair">
+
+    <!-- ── Option A: Net only ── -->
+    <div class="frame">
+      <div class="frame-header" style="background:#fef9c5;">
+        <span style="font-size:1.2rem;">🧮</span> Option A: Net Only (calculated)
+        <span class="tag tag-amber" style="margin-left:auto;">no DB change</span>
+      </div>
+      <div class="frame-body">
+        <div class="picker">
+          <span class="picker-item active">Oakdale</span>
+          <span class="picker-item">Malindi</span>
+          <span class="picker-item">Villeroy</span>
+          <span class="picker-item">Indaba</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40%">Month</th>
+              <th style="text-align:right;">Budget</th>
+              <th style="text-align:right;">Actual</th>
+              <th style="text-align:right;">Variance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>January</td><td class="fmt budget">-2 949</td><td class="fmt actual">-2 337</td><td class="fmt pos">+612</td></tr>
+            <tr><td>February</td><td class="fmt budget">-2 949</td><td class="fmt actual">-2 580</td><td class="fmt pos">+369</td></tr>
+            <tr><td>March</td><td class="fmt budget">-1 696</td><td class="fmt actual">+233</td><td class="fmt pos">+1 929</td></tr>
+            <tr><td>April</td><td class="fmt budget">-1 696</td><td class="fmt actual">-1 084</td><td class="fmt pos">+612</td></tr>
+            <tr><td>May</td><td class="fmt budget">-1 696</td><td class="fmt actual muted">—</td><td class="fmt muted">+1 696</td></tr>
+            <tr style="opacity:0.5;"><td>June → Dec</td><td class="fmt budget">-1 696</td><td class="fmt actual muted">—</td><td class="fmt muted">+1 696</td></tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:1rem;font-size:0.72rem;color:#64748b;background:#f8fafc;border-radius:8px;padding:0.75rem;">
+          <strong>How it works:</strong> Budget = a single net number per property per month (from spreadsheet). You see green/red per month but can't tell <em>why</em>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Option B: Per-category ── -->
+    <div class="frame">
+      <div class="frame-header" style="background:#f0fdf4;">
+        <span style="font-size:1.2rem;">🗄️</span> Option B: Per-Category (D1 table)
+        <span class="tag tag-green" style="margin-left:auto;">DB table needed</span>
+      </div>
+      <div class="frame-body">
+        <div class="picker">
+          <span class="picker-item active">Oakdale</span>
+          <span class="picker-item">Malindi</span>
+          <span class="picker-item">Villeroy</span>
+          <span class="picker-item">Indaba</span>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:0.75rem;font-size:0.7rem;font-weight:600;color:#64748b;">
+          <span>March 2026</span>
+          <span style="margin-left:auto;">Budget</span>
+          <span style="width:70px;text-align:right;">Actual</span>
+          <span style="width:70px;text-align:right;">Var</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40%">Category</th>
+              <th style="text-align:right;">Budget</th>
+              <th style="text-align:right;">Actual</th>
+              <th style="text-align:right;">Variance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Rental Income</td>
+              <td class="fmt budget">13 700</td>
+              <td class="fmt actual">12 206</td>
+              <td class="fmt neg">-1 494</td>
+            </tr>
+            <tr>
+              <td>Levy</td>
+              <td class="fmt budget">2 584</td>
+              <td class="fmt actual">0</td>
+              <td class="fmt neg">-2 584</td>
+            </tr>
+            <tr>
+              <td>Bond Payment</td>
+              <td class="fmt budget">9 652</td>
+              <td class="fmt actual">9 652</td>
+              <td class="fmt pos">0</td>
+            </tr>
+            <tr>
+              <td>Letting Agent</td>
+              <td class="fmt budget">1 576</td>
+              <td class="fmt actual">1 442</td>
+              <td class="fmt pos">+134</td>
+            </tr>
+            <tr>
+              <td>Municipal</td>
+              <td class="fmt budget">900</td>
+              <td class="fmt actual">879</td>
+              <td class="fmt pos">+21</td>
+            </tr>
+            <tr>
+              <td>Maintenance</td>
+              <td class="fmt budget">685</td>
+              <td class="fmt actual">0</td>
+              <td class="fmt pos">+685</td>
+            </tr>
+            <tr class="subtotal">
+              <td>Nett</td>
+              <td class="fmt budget">-1 696</td>
+              <td class="fmt actual">+233</td>
+              <td class="fmt pos">+1 929</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:1rem;font-size:0.72rem;color:#64748b;background:#f8fafc;border-radius:8px;padding:0.75rem;">
+          <strong>How it works:</strong> Each category has its own budget &amp; actual. The net is the sum. A green net can still have red categories — and you can see exactly which ones.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="callout">
+    <strong>🎯 The real difference:</strong><br><br>
+    <strong>Option A</strong> tells you Oakdale was R 1,929 "better" in March. Good to know — but was it because rental came in higher, or because maintenance was R 685 under budget, or because no levy was paid (that's actually a problem)? You can't tell.<br><br>
+    <strong>Option B</strong> shows the R 1,929 is a mix: maintenance under (good), rental over (good), but levy collected R 0 (bad — tenant hasn't paid). You spot the red flag immediately.<br><br>
+    <strong>TL;DR:</strong> If you just want green/red → Option A (ships today). If you want to know <em>what drove</em> the green/red → Option B (needs a D1 table + seed data).
+  </div>
+
+</div>
+</body>
+</html>

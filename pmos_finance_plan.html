@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMOS Finance — Design Decisions</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #f8f6f0;
+  color: #1a2744;
+  padding: 2rem;
+}
+.container { max-width: 1100px; margin: 0 auto; }
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+.subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+
+/* Layout */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 800px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+/* Cards */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.card-header {
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body { padding: 1.25rem; font-size: 0.875rem; line-height: 1.6; }
+.card-body p { margin-bottom: 0.75rem; }
+.card-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.8rem;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Chart area */
+.chart-area {
+  background: #fafaf7;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  position: relative;
+}
+.chart-area canvas { width: 100% !important; height: auto !important; max-height: 200px; }
+
+/* Decision callout */
+.callout {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin: 1.5rem 0 2rem;
+  border-left: 4px solid #1a2744;
+  background: #fff;
+}
+.callout strong { font-size: 0.95rem; }
+
+/* Accordion for chart details */
+details {
+  margin-bottom: 0.5rem;
+}
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.4rem 0;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details summary::-webkit-details-marker { display: none; }
+details[open] { padding-bottom: 0.5rem; }
+.detail-content { padding-left: 1.25rem; color: #475569; font-size: 0.8rem; }
+
+/* Tags */
+.tag { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; margin-right: 4px; }
+.tag-easy { background: #dcfce7; color: #166534; }
+.tag-hard { background: #fee2e2; color: #991b1b; }
+.tag-med  { background: #fef3c7; color: #92400e; }
+
+/* Section headers */
+.section-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem;
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>PMOS Financials — Design Decisions</h1>
+  <p class="subtitle">Comparing approaches for budget data, routing, and dashboard charts. All functionality preserved regardless of choice.</p>
+
+  <!-- ────────────── SECTION 1: BUDGET DATA ────────────── -->
+  <h2 class="section-title">1. Budget Data Strategy</h2>
+  <p style="margin-bottom:1rem;color:#475569;font-size:0.9rem;">The P&amp;L sub-page needs a budget number per property to compare against actuals. Two ways to get it:</p>
+
+  <div class="grid-2">
+    <!-- Option A: D1 Table -->
+    <div class="card">
+      <div class="card-header" style="background:#f0fdf4;">
+        <span style="font-size:1.2rem;">🗄️</span> D1 <code>budgets</code> table
+        <span class="badge badge-green" style="margin-left:auto;">most flexible</span>
+      </div>
+      <div class="card-body">
+        <p><strong>New table:</strong> <code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">{ id, property_id, month, year, budget_amount, category }</code></p>
+        <p><strong>New API:</strong> <code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">GET /api/budgets?property_id=X&year=2026</code></p>
+        <p><strong>Budget categories:</strong> Rental income, Levy income, Management fees, Maintenance, Utilities, Insurance, Municipal costs</p>
+        <p><strong>Seed data:</strong> D1 migration with budget rows — budget = current actual × 1.05 (5% growth assumption), then adjustable</p>
+      </div>
+      <table>
+        <tr><th style="width:35%">Pro</th><th>Con</th></tr>
+        <tr><td><span style="color:#166534;">✓</span> Exact budget figures</td><td><span style="color:#991b1b;">✗</span> Must write & apply D1 migration</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Per-category breakdowns</td><td><span style="color:#991b1b;">✗</span> Needs UI to add/edit budgets</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Month-by-month variance</td><td><span style="color:#991b1b;">✗</span> Seed data can get stale</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Audit-ready for investors</td><td><span style="color:#991b1b;">✗</span> ~45 min to implement fully</td></tr>
+      </table>
+      <div class="card-footer" style="background:#fafaf7;">
+        <span class="tag tag-hard">med effort</span>
+      </div>
+    </div>
+
+    <!-- Option B: On-the-fly Calc -->
+    <div class="card">
+      <div class="card-header" style="background:#fef9c3;">
+        <span style="font-size:1.2rem;">🧮</span> On-the-fly calculation
+        <span class="badge badge-amber" style="margin-left:auto;">fastest to ship</span>
+      </div>
+      <div class="card-body">
+        <p><strong>Formula:</strong> Budget = <code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">purchase_price × 0.06 ÷ 12</code> (6% annual yield target)</p>
+        <p><strong>Alt formula:</strong> Budget = <code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">gross_rental × 1.10</code> (10% above current rental)</p>
+        <p><strong>Where it lives:</strong> In the Worker API — a computed column on <code>/api/properties</code> or a new <code>/api/budgets/calculate</code> endpoint</p>
+        <p><strong>No DB changes, no migrations, no seed data.</strong></p>
+      </div>
+      <table>
+        <tr><th style="width:35%">Pro</th><th>Con</th></tr>
+        <tr><td><span style="color:#166534;">✓</span> Zero database changes</td><td><span style="color:#991b1b;">✗</span> Rough estimate only</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Ship in ~15 minutes</td><td><span style="color:#991b1b;">✗</span> No per-category breakdown</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Always up-to-date (based on real purchase price)</td><td><span style="color:#991b1b;">✗</span> Same % for every property</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Easy to swap for table later</td><td><span style="color:#991b1b;">✗</span> Can't reflect seasonal variance</td></tr>
+      </table>
+      <div class="card-footer" style="background:#fafaf7;">
+        <span class="tag tag-easy">low effort</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────── SECTION 2: ROUTING APPROACH ────────────── -->
+  <h2 class="section-title">2. Routing Approach</h2>
+  <p style="margin-bottom:1rem;color:#475569;font-size:0.9rem;">How the 4 finance sub-pages (Dashboard, Ledger Hub, P&amp;L, Maintenance) navigate within the Financials page.</p>
+
+  <div class="grid-2">
+    <!-- Current: Internal State -->
+    <div class="card">
+      <div class="card-header" style="background:#dbeafe;">
+        <span style="font-size:1.2rem;">📦</span> Internal state (<code style="background:#e2e8f0;padding:0.1rem 0.3rem;border-radius:4px;">detailView</code>)
+        <span class="badge badge-blue" style="margin-left:auto;">current pattern</span>
+      </div>
+      <table>
+        <tr><th colspan="2">How it works</th></tr>
+        <tr><td colspan="2"><code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">setDetailView('ledgers')</code> renders ledger content, <code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;">setDetailView(null)</code> returns to dashboard. URL stays at <code>/financials</code>.</td></tr>
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td><span style="color:#166534;">✓</span> Already implemented — zero new code</td><td><span style="color:#991b1b;">✗</span> Refresh resets to dashboard</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> No changes to <code>App.jsx</code> or routes</td><td><span style="color:#991b1b;">✗</span> Browser back/forward doesn't navigate sub-pages</td></tr>
+        <tr><td></td><td><span style="color:#991b1b;">✗</span> Can't deep-link (e.g., /financials#ledgers)</td></tr>
+        <tr><td></td><td><span style="color:#991b1b;">✗</span> Can't link from PropertyDetail → Financials/Ledgers</td></tr>
+      </table>
+    </div>
+
+    <!-- Sub-routes -->
+    <div class="card">
+      <div class="card-header" style="background:#f0fdf4;">
+        <span style="font-size:1.2rem;">🔗</span> Sub-routes (<code style="background:#e2e8f0;padding:0.1rem 0.3rem;border-radius:4px;">/financials/*</code>)
+        <span class="badge badge-green" style="margin-left:auto;">recommended</span>
+      </div>
+      <table>
+        <tr><th colspan="2">How it works</th></tr>
+        <tr><td colspan="2">Routes: <code>/financials</code> <span style="color:#64748b;">→</span> Dashboard, <code>/financials/ledgers</code> <span style="color:#64748b;">→</span> Ledger Hub, <code>/financials/pnl</code> <span style="color:#64748b;">→</span> P&amp;L, <code>/financials/maintenance</code> <span style="color:#64748b;">→</span> Maintenance</td></tr>
+        <tr><th>Pro</th><th>Con</th></tr>
+        <tr><td><span style="color:#166534;">✓</span> Refresh preserves sub-page</td><td><span style="color:#991b1b;">✗</span> ~20 lines: new Routes in <code>App.jsx</code> + <code>useParams</code> in Financials</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Browser back/forward works perfectly</td><td><span style="color:#991b1b;">✗</span> Slightly more complex navigation logic</td></tr>
+        <tr><td><span style="color:#166534;">✓</span> Deep-linkable: <code>/financials/ledgers?tab=bank_ledger</code></td><td></td></tr>
+        <tr><td><span style="color:#166534;">✓</span> "View Ledgers" link from PropertyDetail can point to <code>/financials/ledgers?property=X</code></td><td></td></tr>
+      </table>
+      <div class="card-footer" style="background:#f0fdf4;">
+        <span class="tag tag-easy">low effort (≈20 min)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────── SECTION 3: CHARTS & DATA ────────────── -->
+  <h2 class="section-title">3. Dashboard Charts — Suggested Layout</h2>
+  <p style="margin-bottom:1rem;color:#475569;font-size:0.9rem;">Four chart widgets on the Financials Dashboard. Actual Chart.js canvases below.</p>
+
+  <div class="grid-2">
+    <!-- Cash Flow -->
+    <div class="card">
+      <div class="card-header">
+        <span>💰 Cash Flow (12-month)</span>
+        <span class="badge badge-blue" style="margin-left:auto;">Line chart</span>
+      </div>
+      <div class="chart-area">
+        <canvas id="chartCashflow"></canvas>
+      </div>
+      <table>
+        <tr><td><strong>Data</strong></td><td>Monthly sum of <code>credit - debit</code> across all ledgers, grouped by month</td></tr>
+        <tr><td><strong>Endpoint</strong></td><td>Already: <code>/api/ledger/rental_ledger?property_id=all</code> (aggregate client-side or new aggregator endpoint)</td></tr>
+        <tr><td><strong>Story</strong></td><td>"Is the portfolio generating positive cash flow month-over-month?"</td></tr>
+      </table>
+    </div>
+
+    <!-- Budget vs Actual -->
+    <div class="card">
+      <div class="card-header">
+        <span>📊 Budget vs Actual (this month)</span>
+        <span class="badge badge-amber" style="margin-left:auto;">Grouped bar</span>
+      </div>
+      <div class="chart-area">
+        <canvas id="chartBudget"></canvas>
+      </div>
+      <table>
+        <tr><td><strong>Data</strong></td><td>Budget (calculated or from table) vs actual income per property for current month</td></tr>
+        <tr><td><strong>Endpoint</strong></td><td>New: <code>/api/budgets?property_id=all&month=5&year=2026</code> (or calculated inline)</td></tr>
+        <tr><td><strong>Story</strong></td><td>"Which properties are underperforming vs target this month?"</td></tr>
+      </table>
+    </div>
+
+    <!-- Maintenance Cost by Property -->
+    <div class="card">
+      <div class="card-header">
+        <span>🔧 Maintenance by Property</span>
+        <span class="badge badge-red" style="margin-left:auto;">Doughnut</span>
+      </div>
+      <div class="chart-area">
+        <canvas id="chartMaintenance"></canvas>
+      </div>
+      <table>
+        <tr><td><strong>Data</strong></td><td>Sum of <code>cost</code> from <code>/api/work-orders?property_id=all</code>, grouped by property</td></tr>
+        <tr><td><strong>Endpoint</strong></td><td>Already exists: <code>/api/work-orders?property_id=all</code></td></tr>
+        <tr><td><strong>Story</strong></td><td>"Which properties are consuming the most maintenance spend?"</td></tr>
+      </table>
+    </div>
+
+    <!-- Recon Status -->
+    <div class="card">
+      <div class="card-header">
+        <span>✓ Reconciliation Status</span>
+        <span class="badge badge-green" style="margin-left:auto;">Doughnut</span>
+      </div>
+      <div class="chart-area">
+        <canvas id="chartRecon"></canvas>
+      </div>
+      <table>
+        <tr><td><strong>Data</strong></td><td>Count of reconciliations grouped by <code>status</code> (<code>matched</code>, <code>exception</code>, <code>pending</code>, <code>unmatched</code>)</td></tr>
+        <tr><td><strong>Endpoint</strong></td><td>Already exists: <code>/api/reconciliation?property_id=all</code></td></tr>
+        <tr><td><strong>Story</strong></td><td>"How healthy is the reconciliation pipeline right now?"</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- KPI Strip Preview -->
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.75rem;margin:1.5rem 0 2rem;font-size:0.75rem;">
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Portfolio</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;">R 8.42M</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Bond Exp.</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;color:#d97706;">R 4.12M</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Net Yield</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;color:#16a34a;">6.8%</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Open WOs</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;color:#d97706;">3</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Recon Excep.</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;color:#dc2626;">2</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;padding:0.75rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+      <div style="color:#64748b;font-weight:600;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.5px;">Properties</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:4px;">7</div>
+    </div>
+  </div>
+
+  <!-- Recommendation callout -->
+  <div class="callout">
+    <strong>🎯 My recommendation:</strong><br><br>
+    <strong>Budget:</strong> Start with <em>on-the-fly calculation</em> (zero DB changes, ships today). Add a <code>budgets</code> table later when you need real budget editability.<br><br>
+    <strong>Routing:</strong> Switch to <em>sub-routes</em>. It's ~20 minutes, unlocks deep-linking, browser nav, and "View in Financials" links from PropertyDetail.<br><br>
+    <strong>Charts:</strong> The 4 above (Cash Flow line, Budget bar, Maintenance doughnut, Recon doughnut) cover the most important questions with data you already have.
+  </div>
+
+</div>
+
+<script>
+// ── Chart.js Demo Charts ──
+document.addEventListener('DOMContentLoaded', () => {
+  const commonOpts = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { family: 'DM Sans' } } },
+      y: { grid: { color: '#e2e8f0' }, ticks: { font: { family: 'DM Sans' } } },
+    }
+  }
+
+  // 1. Cash Flow Line
+  const ctx1 = document.getElementById('chartCashflow')
+  if (ctx1) {
+    new Chart(ctx1, {
+      type: 'line',
+      data: {
+        labels: ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May'],
+        datasets: [{
+          label: 'Net Cash Flow',
+          data: [42000, 38500, 41000, 39800, 37500, 42300, 36100, 44700, 41200, 38900, 43500, 40200],
+          borderColor: '#16a34a',
+          backgroundColor: '#16a34a20',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+        }]
+      },
+      options: { ...commonOpts, plugins: { legend: { display: false } } }
+    })
+  }
+
+  // 2. Budget vs Actual Bar
+  const ctx2 = document.getElementById('chartBudget')
+  if (ctx2) {
+    new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: ['The Firs', 'Hazelwood', 'Oaklands', 'Brooklyn', 'Menlo', 'Lynnwood', 'Groenkloof'],
+        datasets: [
+          { label: 'Budget', data: [12500, 9800, 11200, 14500, 8700, 10300, 16000], backgroundColor: '#1a274460', borderRadius: 4 },
+          { label: 'Actual', data: [13100, 9100, 10800, 15200, 8200, 10700, 15800], backgroundColor: '#1a2744', borderRadius: 4 },
+        ]
+      },
+      options: { ...commonOpts, plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { family: 'DM Sans', size: 11 } } } } }
+    })
+  }
+
+  // 3. Maintenance Doughnut
+  const ctx3 = document.getElementById('chartMaintenance')
+  if (ctx3) {
+    new Chart(ctx3, {
+      type: 'doughnut',
+      data: {
+        labels: ['The Firs', 'Hazelwood', 'Oaklands', 'Brooklyn', 'Menlo', 'Others'],
+        datasets: [{
+          data: [12400, 8200, 5600, 3400, 2100, 1800],
+          backgroundColor: ['#1a2744', '#243356', '#27ae60', '#f5a623', '#e91e8c', '#93a3b8'],
+          borderWidth: 2,
+          borderColor: '#f8f6f0',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { family: 'DM Sans', size: 10 } } }
+        },
+        cutout: '60%',
+      }
+    })
+  }
+
+  // 4. Recon Doughnut
+  const ctx4 = document.getElementById('chartRecon')
+  if (ctx4) {
+    new Chart(ctx4, {
+      type: 'doughnut',
+      data: {
+        labels: ['Matched', 'Exception', 'Pending', 'Unmatched'],
+        datasets: [{
+          data: [42, 7, 12, 3],
+          backgroundColor: ['#16a34a', '#dc2626', '#d97706', '#64748b'],
+          borderWidth: 2,
+          borderColor: '#f8f6f0',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { family: 'DM Sans', size: 10 } } }
+        },
+        cutout: '60%',
+      }
+    })
+  }
+})
+</script>
+</body>
+</html>

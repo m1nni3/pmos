@@ -5,7 +5,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const API = 'https://pmos-api.dawson-edc.workers.dev/api'
+const API = 'https://pmos-api.binos-opms.workers.dev/api'
 
 // Property IDs
 const PROPERTIES = {
