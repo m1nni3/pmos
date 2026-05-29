@@ -1,4 +1,4 @@
-const API = 'https://www.enthuseprop.site/api'
+const API = 'https://pmos-api.dawson-edc.workers.dev/api'
 
 async function get(path) {
   const r = await fetch(API + path)
