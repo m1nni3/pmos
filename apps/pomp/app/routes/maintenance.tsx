@@ -6,12 +6,20 @@ import { Pagination } from '../components/Pagination'
 import { FilterBar, PropertyFilter } from '../components/FilterBar'
 import { Modal } from '../components/Modal'
 import { useCache } from '../lib/cache'
+import { PageHeader, FormSelect, FormInput, Button, Section } from '../components'
 
 const STATUSES = ['open', 'in_progress', 'completed', 'disputed']
 const URGENCIES = ['routine', 'urgent', 'emergency']
 const LIABILITIES = ['trust', 'tenant', 'body_corp', 'contractor']
 
-function WorkOrderForm({ initial, props, onSave, onClose }: { initial?: any, props: any[], onSave: (data: any) => Promise<void>, onClose: () => void }) {
+interface WorkOrderFormProps {
+  initial?: any
+  props: any[]
+  onSave: (data: any) => Promise<void>
+  onClose: () => void
+}
+
+function WorkOrderForm({ initial, props, onSave, onClose }: WorkOrderFormProps) {
   const [form, setForm] = useState({
     property_id: initial?.property_id || '',
     description: initial?.description || '',
@@ -29,87 +37,77 @@ function WorkOrderForm({ initial, props, onSave, onClose }: { initial?: any, pro
   const submit = async () => {
     if (!form.property_id || !form.description) return
     setSaving(true)
-    await onSave({
-      ...form,
-      cost_estimate: form.cost_estimate ? Number(form.cost_estimate) : null,
-      actual_cost: form.actual_cost ? Number(form.actual_cost) : null,
-      completed_at: form.completed_at || null,
-    })
-    setSaving(false)
-    onClose()
+    try {
+      await onSave({
+        ...form,
+        cost_estimate: form.cost_estimate ? Number(form.cost_estimate) : null,
+        actual_cost: form.actual_cost ? Number(form.actual_cost) : null,
+        completed_at: form.completed_at || null,
+      })
+      onClose()
+    } catch (error) {
+      console.error('Error saving work order:', error)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <label className="block text-sm">
-          <span className="text-gray-600">Property *</span>
-          <select value={form.property_id} onChange={e => set('property_id', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg">
-            <option value="">Select…</option>
-            {props.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-600">Urgency</span>
-          <select value={form.urgency} onChange={e => set('urgency', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg">
-            {URGENCIES.map(u => <option key={u} value={u}>{u}</option>)}
-          </select>
-        </label>
+      <FormSelect
+        label="Property"
+        value={form.property_id}
+        onChange={v => set('property_id', v)}
+        options={props.map((p: any) => ({ value: p.id, label: p.name }))}
+        required
+      />
+      <FormInput
+        label="Description"
+        value={form.description}
+        onChange={v => set('description', v)}
+        placeholder="Work order description"
+        rows={3}
+        required
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <FormSelect
+          label="Urgency"
+          value={form.urgency}
+          onChange={v => set('urgency', v)}
+          options={URGENCIES.map(u => ({ value: u, label: u }))}
+        />
+        <FormSelect
+          label="Status"
+          value={form.status}
+          onChange={v => set('status', v)}
+          options={STATUSES.map(s => ({ value: s, label: s }))}
+        />
       </div>
-      <label className="block text-sm">
-        <span className="text-gray-600">Description *</span>
-        <textarea value={form.description} onChange={e => set('description', e.target.value)}
-          className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" rows={3} />
-      </label>
-      <div className="grid grid-cols-2 gap-4">
-        <label className="block text-sm">
-          <span className="text-gray-600">Status</span>
-          <select value={form.status} onChange={e => set('status', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg">
-            {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-600">Liability</span>
-          <select value={form.liability} onChange={e => set('liability', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg">
-            <option value="">—</option>
-            {LIABILITIES.map(l => <option key={l} value={l}>{l.replace('_', ' ')}</option>)}
-          </select>
-        </label>
+      <div className="grid grid-cols-2 gap-3">
+        <FormInput
+          label="Cost Estimate"
+          type="number"
+          value={form.cost_estimate}
+          onChange={v => set('cost_estimate', v)}
+          placeholder="0.00"
+        />
+        <FormInput
+          label="Actual Cost"
+          type="number"
+          value={form.actual_cost}
+          onChange={v => set('actual_cost', v)}
+          placeholder="0.00"
+        />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <label className="block text-sm">
-          <span className="text-gray-600">Cost Estimate (R)</span>
-          <input type="number" value={form.cost_estimate} onChange={e => set('cost_estimate', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" placeholder="0.00" />
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-600">Actual Cost (R)</span>
-          <input type="number" value={form.actual_cost} onChange={e => set('actual_cost', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" placeholder="0.00" />
-        </label>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.receipt_received === 1}
-            onChange={e => set('receipt_received', e.target.checked ? 1 : 0)}
-            className="rounded border-gray-300" />
-          <span className="text-gray-600">Receipt received</span>
-        </label>
-        <label className="block text-sm">
-          <span className="text-gray-600">Completed</span>
-          <input type="date" value={form.completed_at} onChange={e => set('completed_at', e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" />
-        </label>
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <button onClick={onClose} className="btn-secondary">Cancel</button>
-        <button onClick={submit} disabled={saving || !form.property_id || !form.description} className="btn-primary disabled:opacity-50">
-          {saving ? 'Saving…' : initial ? 'Update' : 'Create'}
-        </button>
+      <FormInput
+        label="Completed Date"
+        type="date"
+        value={form.completed_at}
+        onChange={v => set('completed_at', v)}
+      />
+      <div className="flex gap-2 justify-end pt-2">
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" isLoading={saving} onClick={submit}>Save</Button>
       </div>
     </div>
   )
@@ -117,113 +115,111 @@ function WorkOrderForm({ initial, props, onSave, onClose }: { initial?: any, pro
 
 export default function Maintenance() {
   const { properties } = useCache()
-  const [orders, setOrders] = useState<any[]>([])
+  const [workOrders, setWorkOrders] = useState<any[]>([])
   const [meta, setMeta] = useState({ total: 0, page: 1, pageSize: 50, totalPages: 1 })
   const [propFilter, setPropFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editItem, setEditItem] = useState<any | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingData, setEditingData] = useState<any>(null)
 
-  const fetchData = useCallback(async (page = 1) => {
+  const fetchWorkOrders = useCallback(async (page = 1) => {
     const params = new URLSearchParams()
     if (propFilter !== 'all') params.set('property_id', propFilter)
-    if (statusFilter !== 'all') params.set('status', statusFilter)
+    if (statusFilter) params.set('status', statusFilter)
+    if (search) params.set('search', search)
     params.set('page', String(page))
     params.set('pageSize', '50')
     const data = await apiClient.get(`/work-orders?${params}`)
-    setOrders(data.entries || [])
+    setWorkOrders(data.entries || data)
     setMeta({ total: data.total || 0, page: data.page || 1, pageSize: data.pageSize || 50, totalPages: data.totalPages || 1 })
-  }, [propFilter, statusFilter])
+  }, [propFilter, statusFilter, search])
 
-  useEffect(() => { fetchData(1) }, [fetchData])
+  useEffect(() => { fetchWorkOrders(1) }, [fetchWorkOrders])
 
-  const handleSave = async (data: any) => {
-    if (editItem) {
-      await apiClient.put(`/work-orders/${editItem.id}`, data)
+  const saveWorkOrder = async (data: any) => {
+    if (editingId) {
+      await apiClient.put(`/work-orders/${editingId}`, data)
+      setEditingId(null)
     } else {
       await apiClient.post('/work-orders', data)
     }
-    await fetchData(meta.page)
+    setShowForm(false)
+    fetchWorkOrders()
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this work order?')) return
-    await apiClient.del(`/work-orders/${id}`)
-    await fetchData(meta.page)
-  }
-
-  const urgencyBadge = (u: string) => {
-    if (u === 'emergency') return 'badge-red'
-    if (u === 'urgent') return 'badge-orange'
-    return 'badge-blue'
-  }
-  const statusBadge = (s: string) => {
-    if (s === 'completed') return 'badge-green'
-    if (s === 'open') return 'badge-orange'
-    if (s === 'disputed') return 'badge-red'
-    return 'badge-blue'
+  const deleteWorkOrder = async (id: string) => {
+    if (confirm('Delete this work order?')) {
+      await apiClient.delete(`/work-orders/${id}`)
+      fetchWorkOrders()
+    }
   }
 
   const columns: Column<any>[] = [
-    { key: 'raised_at', label: 'Date', sortable: true, format: (v: string) => <span className="text-gray-600 whitespace-nowrap">{v?.slice(0, 10) || '—'}</span> },
-    { key: 'property_name', label: 'Property', sortable: true },
+    { key: 'id', label: 'ID', format: (v) => <span className="font-mono text-xs">{v.slice(0, 8)}</span> },
     { key: 'description', label: 'Description' },
-    { key: 'urgency', label: 'Urgency', sortable: true, format: (v: string) => <span className={urgencyBadge(v)}>{v}</span> },
-    { key: 'liability', label: 'Liability', format: (v: string) => <span className="text-gray-600">{v ? v.replace('_', ' ') : '—'}</span> },
-    { key: 'cost_estimate', label: 'Estimate', align: 'right', format: (v: number) => v ? formatRand(v) : '—' },
-    { key: 'actual_cost', label: 'Actual', align: 'right', sortable: true, format: (v: number) => v ? formatRand(v) : '—' },
-    { key: 'status', label: 'Status', sortable: true, format: (v: string) => <span className={statusBadge(v)}>{v?.replace('_', ' ')}</span> },
-    { key: '_actions', label: '', align: 'right', format: (_: any, row: any) => (
-      <div className="flex items-center gap-1 justify-end">
-        <button onClick={e => { e.stopPropagation(); setEditItem(row); setShowForm(true) }} className="p-1 text-gray-400 hover:text-pomp-blue rounded"><Pencil size={14} /></button>
-        <button onClick={e => { e.stopPropagation(); handleDelete(row.id) }} className="p-1 text-gray-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
-      </div>
-    )},
+    { key: 'urgency', label: 'Urgency', format: (v) => <span className={`text-xs px-2 py-1 rounded-full ${v === 'emergency' ? 'bg-red-50 text-red-700' : v === 'urgent' ? 'bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700'}`}>{v}</span> },
+    { key: 'status', label: 'Status', format: (v) => <span className={`text-xs px-2 py-1 rounded-full ${v === 'completed' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>{v}</span> },
+    { key: 'actual_cost', label: 'Cost', align: 'right', format: (v) => <span>{v ? formatRand(v) : '—'}</span> },
+    { key: 'completed_at', label: 'Completed' },
   ]
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="font-heading text-xl font-bold text-pomp-navy">Maintenance</h2>
-          <p className="text-xs text-gray-500 mt-1">{meta.total} work order{meta.total !== 1 ? 's' : ''}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => exportCSV('maintenance.csv', orders.map(o => ({
-            date: o.raised_at?.slice(0,10), property: o.property_name, description: o.description,
-            urgency: o.urgency, liability: o.liability, estimate: o.cost_estimate, actual: o.actual_cost,
-            status: o.status, receipt: o.receipt_received ? 'yes' : 'no',
-          })))} className="btn-secondary text-xs">Export CSV</button>
-          <button onClick={() => { setEditItem(null); setShowForm(true) }} className="btn-primary flex items-center gap-1 text-sm">
-            <Plus size={14} /> New Work Order
-          </button>
-        </div>
+      <PageHeader
+        title="Maintenance Work Orders"
+        subtitle="Track property maintenance requests and completion"
+        action={
+          <Button onClick={() => { setEditingId(null); setEditingData(null); setShowForm(true) }} variant="primary">
+            <Plus size={16} /> New Work Order
+          </Button>
+        }
+      />
+
+      <div className="flex gap-2 mb-6 flex-wrap">
+        <PropertyFilter value={propFilter} onChange={setPropFilter} properties={properties} />
+        <FormSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[{ value: '', label: 'All Status' }, ...STATUSES.map(s => ({ value: s, label: s }))]}
+          className="flex-1 min-w-[150px]"
+        />
       </div>
 
-      <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder="Search descriptions…">
-        <PropertyFilter value={propFilter} onChange={setPropFilter} properties={properties} />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white">
-          <option value="all">All Statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-        </select>
-      </FilterBar>
+      <Modal
+        open={showForm}
+        onClose={() => {
+          setShowForm(false)
+          setEditingId(null)
+          setEditingData(null)
+        }}
+        title={editingId ? 'Edit Work Order' : 'New Work Order'}
+        size="md"
+      >
+        <WorkOrderForm
+          initial={editingData}
+          props={properties}
+          onSave={saveWorkOrder}
+          onClose={() => {
+            setShowForm(false)
+            setEditingId(null)
+            setEditingData(null)
+          }}
+        />
+      </Modal>
 
-      <div className="card">
+      <Section title="Work Orders">
+        <FilterBar search={search} onSearchChange={setSearch} searchPlaceholder="Search descriptions…" />
         <DataTable
           columns={columns}
-          data={orders.filter(o => !search || o.description?.toLowerCase().includes(search.toLowerCase()))}
+          data={workOrders}
           rowKey={(r: any) => r.id}
           emptyMessage="No work orders found"
-          defaultSort={{ key: 'raised_at', dir: 'desc' }}
+          defaultSort={{ key: 'completed_at', dir: 'desc' }}
         />
-        <Pagination {...meta} onChange={fetchData} />
-      </div>
-
-      <Modal open={showForm} onClose={() => { setShowForm(false); setEditItem(null) }} title={editItem ? 'Edit Work Order' : 'New Work Order'} size="md">
-        <WorkOrderForm initial={editItem} props={properties} onSave={handleSave} onClose={() => { setShowForm(false); setEditItem(null) }} />
-      </Modal>
+        <Pagination {...meta} onChange={fetchWorkOrders} />
+      </Section>
     </div>
   )
 }
