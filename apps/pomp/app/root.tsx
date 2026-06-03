@@ -46,6 +46,7 @@ const sections = [
       { name: 'Bonds', path: '/bonds', icon: Scale },
       { name: 'Insurance', path: '/insurance', icon: ShieldCheck },
       { name: 'Contacts', path: '/contacts', icon: Phone },
+      { name: 'Letting', path: '/letting', icon: UserCheck },
     ],
   },
   {
@@ -53,7 +54,6 @@ const sections = [
     items: [
       { name: 'Overview', path: '/overview', icon: LayoutDashboard },
       { name: 'Finances', path: '/finances', icon: Landmark },
-      { name: 'Letting Agent', path: '/letting', icon: UserCheck },
       { name: 'Levies & Banking', path: '/levies', icon: Banknote },
       { name: 'Maintenance', path: '/maintenance', icon: Wrench },
       { name: 'Reconciliation', path: '/reconciliation', icon: Scale },
