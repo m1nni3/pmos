@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import {
   Home, ArrowLeft, UserCheck, DollarSign, ShieldCheck,
-  Landmark, Users, History, Info, MapPin, AlertCircle
+  Landmark, Users, History, Info, MapPin, AlertCircle, Edit3, Save, X
 } from 'lucide-react'
 import { apiClient, formatRand } from '../lib/utils'
 import { useCache } from '../lib/cache'
@@ -9,12 +9,48 @@ import { useCache } from '../lib/cache'
 const TABS = ['Overview', 'Letting', 'Management', 'Bonds', 'Insurance', 'Units', 'History'] as const
 type Tab = typeof TABS[number]
 
-const SCHEME_MAP: Record<string, { scheme: string; agent: string }> = {
-  Oakdale:  { scheme: 'Oakdale BC',           agent: 'Trafalgar'     },
-  Malindi:  { scheme: 'George Rennie BC',      agent: 'Kemprent'      },
-  Indaba:   { scheme: 'Indaba BC SS310/1995',  agent: 'HuurKor Admin' },
-  Villeroy: { scheme: 'SS Villeroy',           agent: 'Trafalgar'     },
-}
+const DETAIL_FIELDS = [
+  { label: 'Unit Number', key: 'unit_number' },
+  { label: 'Door Number', key: 'door_number' },
+  { label: 'ERF Number', key: 'erf_number' },
+  { label: 'Scheme Number', key: 'scheme_number' },
+  { label: 'Size (sqm)', key: 'size_sqm', type: 'number' },
+  { label: 'Bedrooms', key: 'bedrooms', type: 'number' },
+  { label: 'Bathrooms', key: 'bathrooms', type: 'number' },
+  { label: 'Parking Bays', key: 'parking_bays', type: 'number' },
+  { label: 'Suburb', key: 'suburb' },
+  { label: 'Township', key: 'township' },
+  { label: 'LPI Code', key: 'lpi_code' },
+  { label: 'Purchase Date', key: 'purchase_date' },
+  { label: 'Purchase Price', key: 'purchase_price', type: 'number' },
+  { label: 'Current Market Value', key: 'current_market_value', type: 'number' },
+  { label: 'Municipality', key: 'municipality_name' },
+  { label: 'Municipal Valuation', key: 'municipal_valuation' },
+  { label: 'Mun. Valuation Year', key: 'municipal_valuation_year' },
+  { label: 'Mun. Account Number', key: 'municipal_account_number' },
+  { label: 'Mun. Paid By', key: 'municipal_paid_by' },
+  { label: 'Managing Agent', key: 'managing_agent_name' },
+  { label: 'Portfolio Manager', key: 'portfolio_manager' },
+  { label: 'Agent Email', key: 'agent_email' },
+  { label: 'Agent Phone', key: 'agent_phone' },
+  { label: 'Management Fee', key: 'management_fee' },
+  { label: 'Payment Method', key: 'payment_method' },
+  { label: 'Tenant Name', key: 'tenant_name' },
+  { label: 'Tenant Phone', key: 'tenant_phone' },
+  { label: 'Tenant Notes', key: 'tenant_notes' },
+  { label: 'BC Name', key: 'bc_name' },
+  { label: 'BC Registration', key: 'bc_registration_number' },
+  { label: 'BC Bank', key: 'bc_bank' },
+  { label: 'BC Account Name', key: 'bc_account_name' },
+  { label: 'BC Levy Reference', key: 'bc_levy_reference' },
+  { label: 'BC Levy Payment', key: 'bc_levy_payment_method' },
+  { label: 'Insurer', key: 'insurer' },
+  { label: 'Broker', key: 'broker' },
+  { label: 'Policy Number', key: 'policy_number' },
+  { label: 'Geyser Excess', key: 'geyser_excess', type: 'number' },
+  { label: 'Emergency Contact', key: 'emergency_contact_name' },
+  { label: 'Emergency Phone', key: 'emergency_contact_phone' },
+]
 
 export default function Properties() {
   const { properties: props } = useCache()
@@ -22,15 +58,20 @@ export default function Properties() {
   const [detail,   setDetail]   = useState<any>(null)
   const [rental,   setRental]   = useState<any>(null)
   const [tab,      setTab]      = useState<Tab>('Overview')
+  const [editing,  setEditing]  = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, any>>({})
+  const [saving,   setSaving]   = useState(false)
 
   useEffect(() => {
     if (!selected) { setDetail(null); setRental(null); return }
     setTab('Overview')
+    setEditing(false)
     Promise.all([
       apiClient.get(`/properties/${selected.id}`),
       apiClient.get(`/ledger/rental_ledger?property_id=${selected.id}&pageSize=2000`),
     ]).then(([d, r]) => {
       setDetail(d)
+      setEditForm(d || {})
       const entries = r.entries || r || []
       const income   = entries.reduce((s: number, e: any) => s + (e.credit || 0), 0)
       const expenses = entries.reduce((s: number, e: any) => s + (e.debit  || 0), 0)
@@ -38,6 +79,18 @@ export default function Properties() {
       setRental({ income, expenses, entries: entries.length, lastDate: dates[dates.length - 1] || '—' })
     })
   }, [selected])
+
+  async function saveDetails() {
+    if (!selected) return
+    setSaving(true)
+    try {
+      await apiClient.put(`/properties/${selected.id}/details`, editForm)
+      setEditing(false)
+      const updated = await apiClient.get(`/properties/${selected.id}`)
+      setDetail(updated)
+    } catch (e) { console.error(e) }
+    setSaving(false)
+  }
 
   if (!selected) {
     return (
@@ -83,6 +136,10 @@ export default function Properties() {
           <h2 className="font-heading text-xl font-bold text-pomp-navy">{selected.name}</h2>
           <p className="text-sm text-gray-500">{selected.address}</p>
         </div>
+        <button onClick={() => { setEditing(!editing); if (!editing) setEditForm(detail || {}) }} className="ml-auto flex items-center gap-1.5 text-sm bg-pomp-blue text-white px-3 py-1.5 rounded-lg hover:bg-pomp-blue/90 transition-colors">
+          {editing ? <X size={16} /> : <Edit3 size={16} />}
+          {editing ? 'Cancel' : 'Edit'}
+        </button>
       </div>
 
       <div className="kpi-row mb-4">
@@ -103,6 +160,27 @@ export default function Properties() {
           <p className="text-lg font-bold text-pomp-navy">{(detail?.managing_agent_name) || bc.agent || '—'}</p>
         </div>
       </div>
+
+      {editing && (
+        <div className="card mb-4 border-2 border-pomp-blue/30">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-pomp-navy text-sm">Edit Property Details</h4>
+            <button onClick={saveDetails} disabled={saving} className="flex items-center gap-1.5 text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50">
+              <Save size={16} /> {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+            {DETAIL_FIELDS.map(f => (
+              <div key={f.key}>
+                <label className="block text-xs text-gray-500 mb-0.5">{f.label}</label>
+                <input type={f.type || 'text'} value={editForm[f.key] ?? ''} onChange={e => setEditForm({...editForm, [f.key]: e.target.value})}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-pomp-blue focus:border-pomp-blue outline-none"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-1 flex-wrap mb-4 border-b border-pomp-border">
         {TABS.map(t => (

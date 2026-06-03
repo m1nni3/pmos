@@ -2,9 +2,9 @@ import React, { useState, lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router'
 import {
-  LayoutDashboard, Building2, Landmark,
+  LayoutDashboard, Building2, Landmark, UserCheck, ShieldCheck,
   Banknote, Wrench, Scale, Phone, FolderOpen, LogOut, FileText, Menu, X,
-  Settings as SettingsIcon, Upload,
+  Settings as SettingsIcon, Upload, TrendingDown, Wallet, Globe, ChevronDown,
 } from 'lucide-react'
 import './styles.css'
 import { CacheProvider } from './lib/cache'
@@ -12,11 +12,18 @@ import { CacheProvider } from './lib/cache'
 const Overview       = lazy(() => import('./routes/overview'))
 const Properties     = lazy(() => import('./routes/properties'))
 const Finances       = lazy(() => import('./routes/finances'))
+const LettingAgent   = lazy(() => import('./routes/letting'))
+const Management     = lazy(() => import('./routes/management'))
 const LeviesBanking  = lazy(() => import('./routes/levies'))
+const Bonds          = lazy(() => import('./routes/bonds'))
+const Insurance      = lazy(() => import('./routes/insurance'))
 const Maintenance    = lazy(() => import('./routes/maintenance'))
 const Reconciliation = lazy(() => import('./routes/reconciliation'))
+const Pnl            = lazy(() => import('./routes/pnl'))
 const Contacts       = lazy(() => import('./routes/contacts'))
 const Documents      = lazy(() => import('./routes/documents'))
+const Reports        = lazy(() => import('./routes/reports'))
+const PettyCash      = lazy(() => import('./routes/petty-cash'))
 const Portals        = lazy(() => import('./routes/portals'))
 const Settings       = lazy(() => import('./routes/settings'))
 const Import         = lazy(() => import('./routes/import'))
@@ -30,22 +37,59 @@ function PageLoader() {
   )
 }
 
-const tabs = [
-  { name: 'Overview',       path: '/overview',       icon: LayoutDashboard },
-  { name: 'Properties',     path: '/properties',     icon: Building2 },
-  { name: 'Finances',       path: '/finances',       icon: Landmark },
-  { name: 'Levies & Banking', path: '/levies',       icon: Banknote },
-  { name: 'Maintenance',    path: '/maintenance',    icon: Wrench },
-  { name: 'Reconciliation', path: '/reconciliation', icon: Scale },
-  { name: 'Contacts',       path: '/contacts',       icon: Phone },
-  { name: 'Documents',      path: '/documents',      icon: FolderOpen },
-  { name: 'Import',         path: '/import',         icon: Upload },
-  { name: 'Settings',       path: '/settings',       icon: SettingsIcon },
-  { name: 'Portals',        path: '/portals',        icon: FileText },
+const sections = [
+  {
+    label: 'Prop Portfolio',
+    items: [
+      { name: 'Properties', path: '/properties', icon: Building2 },
+      { name: 'Contacts', path: '/contacts', icon: Phone },
+    ],
+  },
+  {
+    label: 'Financials',
+    items: [
+      { name: 'Overview', path: '/overview', icon: LayoutDashboard },
+      { name: 'Finances', path: '/finances', icon: Landmark },
+      { name: 'Letting Agent', path: '/letting', icon: UserCheck },
+      { name: 'Management', path: '/management', icon: ShieldCheck },
+      { name: 'Levies & Banking', path: '/levies', icon: Banknote },
+      { name: 'Bonds', path: '/bonds', icon: Scale },
+      { name: 'Insurance', path: '/insurance', icon: ShieldCheck },
+      { name: 'Maintenance', path: '/maintenance', icon: Wrench },
+      { name: 'Reconciliation', path: '/reconciliation', icon: Scale },
+      { name: 'P&L', path: '/pnl', icon: TrendingDown },
+      { name: 'Documents', path: '/documents', icon: FolderOpen },
+      { name: 'Reports', path: '/reports', icon: FileText },
+    ],
+  },
+  {
+    label: 'Governance',
+    items: [],
+  },
+  {
+    label: 'Oversight',
+    items: [
+      { name: 'Petty Cash', path: '/petty-cash', icon: Wallet },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { name: 'Settings', path: '/settings', icon: SettingsIcon },
+      { name: 'Import', path: '/import', icon: Upload },
+      { name: 'Portals', path: '/portals', icon: Globe },
+    ],
+  },
 ]
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    'Prop Portfolio': true,
+    'Financials': true,
+    'Oversight': true,
+    'Settings': true,
+  })
   const authed = typeof window !== 'undefined' && sessionStorage.getItem('pomp_auth')?.trim() !== ''
   if (!authed) return <Navigate to="/login" replace />
 
@@ -61,16 +105,29 @@ function Layout() {
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-white/60 hover:text-white p-1"><X size={18} /></button>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {tabs.map(tab => (
-            <NavLink
-              key={tab.path}
-              to={tab.path}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-            >
-              <tab.icon size={18} />
-              <span>{tab.name}</span>
-            </NavLink>
+          {sections.map(section => (
+            <div key={section.label}>
+              <button
+                onClick={() => setOpenSections(prev => ({ ...prev, [section.label]: !prev[section.label] }))}
+                className="flex items-center justify-between w-full text-white/50 text-xs uppercase tracking-wider font-semibold px-2 py-2 hover:text-white/80 transition-colors"
+              >
+                {section.label}
+                {section.items.length > 0 && (
+                  <ChevronDown size={14} className={`transition-transform ${openSections[section.label] ? 'rotate-0' : '-rotate-90'}`} />
+                )}
+              </button>
+              {openSections[section.label] && section.items.map(item => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                >
+                  <item.icon size={18} />
+                  <span>{item.name}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="p-3 border-t border-white/10">
@@ -94,11 +151,18 @@ function Layout() {
               <Route path="/overview"       element={<Overview />} />
               <Route path="/properties"     element={<Properties />} />
               <Route path="/finances"       element={<Finances />} />
+              <Route path="/letting"        element={<LettingAgent />} />
+              <Route path="/management"     element={<Management />} />
               <Route path="/levies"         element={<LeviesBanking />} />
+              <Route path="/bonds"          element={<Bonds />} />
+              <Route path="/insurance"      element={<Insurance />} />
               <Route path="/maintenance"    element={<Maintenance />} />
               <Route path="/reconciliation" element={<Reconciliation />} />
+              <Route path="/pnl"            element={<Pnl />} />
               <Route path="/contacts"       element={<Contacts />} />
               <Route path="/documents"      element={<Documents />} />
+              <Route path="/reports"        element={<Reports />} />
+              <Route path="/petty-cash"     element={<PettyCash />} />
               <Route path="/settings"       element={<Settings />} />
               <Route path="/import"         element={<Import />} />
               <Route path="/portals"        element={<Portals />} />

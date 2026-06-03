@@ -663,9 +663,214 @@ app.get('/api/reports/:type', async (c) => {
   return c.json(results)
 })
 
+// ── Property Details (editing) ─────────────────────────
+app.get('/api/properties/:id/details', async (c) => {
+  const id = c.req.param('id')
+  const row = await c.env.DB.prepare('SELECT * FROM property_details WHERE property_id = ?').bind(id).first()
+  return c.json(row || {})
+})
+
+app.put('/api/properties/:id/details', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const fields = [
+    'unit_number','door_number','erf_number','scheme_number','size_sqm','bedrooms','bathrooms','parking_bays',
+    'suburb','township','lpi_code','purchase_date','purchase_price','current_market_value',
+    'title_deed_reference','owner_name','owner_id','registered_owner',
+    'municipality_name','municipal_valuation','municipal_valuation_year','municipal_account_number','municipal_paid_by',
+    'agency','managing_agent_name','portfolio_manager','agent_email','agent_phone','account_administrator',
+    'maintenance_manager','department_head','management_fee','payment_method','branch','branch_code',
+    'tenant_name','tenant_phone','tenant_email','tenant_notes',
+    'bc_name','bc_registration_number','bc_bank','bc_account_name','bc_branch','bc_branch_code',
+    'bc_levy_reference','bc_levy_payment_method','bc_contact_name','bc_contact_phone','bc_contact_email',
+    'bond_bank','bond_account_number','original_bond_amount','monthly_bond_payment','expected_payoff_date',
+    'insurer','broker','policy_number','policy_holder','geyser_excess','annual_renewal_date','insurance_contact',
+    'emergency_contact_name','emergency_contact_phone','emergency_contact_email','emergency_contact_notes',
+  ]
+  // Check if row exists
+  const existing = await c.env.DB.prepare('SELECT id FROM property_details WHERE property_id = ?').bind(id).first()
+  if (existing) {
+    const sets = fields.filter(f => f in body).map(f => `${f} = ?`)
+    const vals = fields.filter(f => f in body).map(f => (body as any)[f] ?? null)
+    if (sets.length) {
+      vals.push(id)
+      await c.env.DB.prepare(`UPDATE property_details SET ${sets.join(', ')} WHERE property_id = ?`).bind(...vals).run()
+    }
+  } else {
+    const insertFields = ['id', 'property_id', ...fields.filter(f => f in body)]
+    const insertVals = [uuid(), id, ...fields.filter(f => f in body).map(f => (body as any)[f] ?? null)]
+    await c.env.DB.prepare(`INSERT INTO property_details (${insertFields.join(', ')}) VALUES (${insertVals.map(() => '?').join(', ')})`).bind(...insertVals).run()
+  }
+  return c.json({ ok: true })
+})
+
+// ── Property Contacts ──────────────────────────────────
+app.get('/api/property-contacts', async (c) => {
+  const pid = c.req.query('property_id')
+  const cat = c.req.query('category')
+  const clauses: string[] = []
+  const params: any[] = []
+  if (pid && pid !== 'all') { clauses.push('property_id = ?'); params.push(pid) }
+  if (cat && cat !== 'all') { clauses.push('category = ?'); params.push(cat) }
+  const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''
+  const { results } = await c.env.DB.prepare(`SELECT * FROM property_contacts${where} ORDER BY category, name`).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/property-contacts', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO property_contacts (id, property_id, category, subcategory, name, phone, email, notes) VALUES (?,?,?,?,?,?,?,?)'
+  ).bind(id, body.property_id, body.category, body.subcategory || null, body.name, body.phone || null, body.email || null, body.notes || null).run()
+  return c.json({ id }, 201)
+})
+
+app.put('/api/property-contacts/:id', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  await c.env.DB.prepare(
+    'UPDATE property_contacts SET category=?, subcategory=?, name=?, phone=?, email=?, notes=? WHERE id=?'
+  ).bind(body.category, body.subcategory || null, body.name, body.phone || null, body.email || null, body.notes || null, id).run()
+  return c.json({ ok: true })
+})
+
+app.delete('/api/property-contacts/:id', async (c) => {
+  await c.env.DB.prepare('DELETE FROM property_contacts WHERE id = ?').bind(c.req.param('id')).run()
+  return c.json({ ok: true })
+})
+
+// ── Property Documents ──────────────────────────────────
+app.get('/api/property-documents', async (c) => {
+  const pid = c.req.query('property_id')
+  const cat = c.req.query('category')
+  const clauses: string[] = []
+  const params: any[] = []
+  if (pid && pid !== 'all') { clauses.push('d.property_id = ?'); params.push(pid) }
+  if (cat && cat !== 'all') { clauses.push('d.category = ?'); params.push(cat) }
+  const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''
+  const { results } = await c.env.DB.prepare(
+    `SELECT d.*, p.name as property_name FROM property_documents d LEFT JOIN properties p ON p.id = d.property_id${where} ORDER BY d.created_at DESC`
+  ).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/property-documents', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO property_documents (id, property_id, name, category, file_url, mime_type, size_bytes, notes) VALUES (?,?,?,?,?,?,?,?)'
+  ).bind(id, body.property_id, body.name, body.category, body.file_url || null, body.mime_type || null, body.size_bytes || null, body.notes || null).run()
+  return c.json({ id }, 201)
+})
+
+app.delete('/api/property-documents/:id', async (c) => {
+  await c.env.DB.prepare('DELETE FROM property_documents WHERE id = ?').bind(c.req.param('id')).run()
+  return c.json({ ok: true })
+})
+
+// ── P&L (Profit & Loss) ─────────────────────────────────
+app.get('/api/pnl', async (c) => {
+  const pid = c.req.query('property_id')
+  const year = parseInt(c.req.query('year') || String(new Date().getFullYear()))
+  const clauses: string[] = []
+  const params: any[] = []
+  if (pid && pid !== 'all') { clauses.push('r.property_id = ?'); params.push(pid) }
+  params.push(year)
+
+  const { results: income } = await c.env.DB.prepare(`
+    SELECT property_id, strftime('%m', date) as month, sum(credit) as amount
+    FROM rental_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
+    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
+  `).bind(...params).all() as any
+
+  const { results: levies } = await c.env.DB.prepare(`
+    SELECT property_id, strftime('%m', date) as month, sum(credit) as amount
+    FROM levy_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
+    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
+  `).bind(...params).all() as any
+
+  const { results: expenses } = await c.env.DB.prepare(`
+    SELECT property_id, strftime('%m', date) as month, sum(debit) as amount
+    FROM bank_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
+    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
+  `).bind(...params).all() as any
+
+  const { results: mun } = await c.env.DB.prepare(`
+    SELECT property_id, strftime('%m', date) as month, sum(debit) as amount
+    FROM municipality_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
+    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
+  `).bind(...params).all() as any
+
+  const { results: budgets } = await c.env.DB.prepare(
+    'SELECT * FROM budgets WHERE year = ?'
+  ).bind(year).all() as any
+
+  return c.json({ income, levies, expenses, mun, budgets, year })
+})
+
+// ── Budgets ─────────────────────────────────────────────
+app.post('/api/budgets', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO budgets (id, property_id, year, month, category, budget_amount) VALUES (?,?,?,?,?,?)'
+  ).bind(id, body.property_id, body.year, body.month, body.category, body.budget_amount).run()
+  return c.json({ id }, 201)
+})
+
+app.put('/api/budgets/:id', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  await c.env.DB.prepare(
+    'UPDATE budgets SET budget_amount = ? WHERE id = ?'
+  ).bind(body.budget_amount, id).run()
+  return c.json({ ok: true })
+})
+
 // ── Petty Cash ──────────────────────────────────────────
 app.get('/api/petty-cash', async (c) => {
-  return c.json({ message: 'not implemented yet' })
+  const pid = c.req.query('property_id')
+  const clauses: string[] = []
+  const params: any[] = []
+  if (pid && pid !== 'all') { clauses.push('property_id = ?'); params.push(pid) }
+  const where = clauses.length ? ' WHERE ' + clauses.join(' AND ') : ''
+
+  const { results: income } = await c.env.DB.prepare(`SELECT *, 'income' as type FROM petty_cash_income${where} ORDER BY date DESC LIMIT 200`).bind(...params).all()
+  const { results: expenses } = await c.env.DB.prepare(`SELECT *, 'expense' as type FROM petty_cash_expenses${where} ORDER BY date DESC LIMIT 200`).bind(...params).all()
+
+  const totalIncome = (income as any[]).reduce((s: number, r: any) => s + r.amount, 0)
+  const totalExpenses = (expenses as any[]).reduce((s: number, r: any) => s + r.amount, 0)
+
+  return c.json({ income, expenses, totalIncome, totalExpenses, balance: totalIncome - totalExpenses })
+})
+
+app.post('/api/petty-cash/income', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO petty_cash_income (id, property_id, date, description, amount, category, receipt_url, notes) VALUES (?,?,?,?,?,?,?,?)'
+  ).bind(id, body.property_id || null, body.date, body.description, body.amount, body.category || null, body.receipt_url || null, body.notes || null).run()
+  return c.json({ id }, 201)
+})
+
+app.delete('/api/petty-cash/income/:id', async (c) => {
+  await c.env.DB.prepare('DELETE FROM petty_cash_income WHERE id = ?').bind(c.req.param('id')).run()
+  return c.json({ ok: true })
+})
+
+app.post('/api/petty-cash/expenses', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO petty_cash_expenses (id, property_id, date, description, amount, category, vat_inclusive, supplier, receipt_url, notes) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).bind(id, body.property_id || null, body.date, body.description, body.amount, body.category || null, body.vat_inclusive !== undefined ? (body.vat_inclusive ? 1 : 0) : 1, body.supplier || null, body.receipt_url || null, body.notes || null).run()
+  return c.json({ id }, 201)
+})
+
+app.delete('/api/petty-cash/expenses/:id', async (c) => {
+  await c.env.DB.prepare('DELETE FROM petty_cash_expenses WHERE id = ?').bind(c.req.param('id')).run()
+  return c.json({ ok: true })
 })
 
 // ── Not found ───────────────────────────────────────────
@@ -820,7 +1025,6 @@ export default {
     if (res.status === 404 && !url.pathname.includes('.')) {
       return env.ASSETS.fetch(new Request(new URL('/', url), request))
     }
-    return res
     return res
   },
 } as ExportedHandler<Env>

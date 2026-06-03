@@ -20,6 +20,7 @@ export const apiClient = {
   post: (path: string, data?: any) => api(path, { method: 'POST', body: JSON.stringify(data) }),
   put: (path: string, data?: any) => api(path, { method: 'PUT', body: JSON.stringify(data) }),
   del: (path: string) => api(path, { method: 'DELETE' }),
+  delete: (path: string) => api(path, { method: 'DELETE' }),
 }
 
 export function formatRand(amount: number) {
