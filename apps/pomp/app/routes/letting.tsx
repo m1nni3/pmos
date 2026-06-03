@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { UserCheck } from 'lucide-react'
+import { UserCheck, Banknote } from 'lucide-react'
 import { apiClient, formatRand } from '../lib/utils'
 import { useCache } from '../lib/cache'
+import { PageHeader, CardGrid, Section } from '../components'
 
 export default function LettingAgent() {
   const { properties } = useCache()
@@ -24,15 +25,17 @@ export default function LettingAgent() {
 
   return (
     <div>
-      <h2 className="font-heading text-xl font-bold text-pomp-navy mb-2">Letting Agent</h2>
-      <p className="text-sm text-gray-500 mb-6">Rental income and letting agent performance per property</p>
+      <PageHeader
+        title="Letting Agent"
+        subtitle="Rental income and letting agent performance per property"
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardGrid cols={2} gap="md">
         {properties.map((prop: any) => {
           const stats = byProperty[prop.id]
           return (
             <div key={prop.id} className="card">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pomp-blue to-pomp-teal flex items-center justify-center">
                   <UserCheck size={18} className="text-white" />
                 </div>
@@ -42,35 +45,37 @@ export default function LettingAgent() {
                 </div>
               </div>
               {stats ? (
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-500">Total Rental Income</p>
-                    <p className="font-semibold text-green-600">{formatRand(stats.income)}</p>
+                <>
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-3 pb-3 border-b border-pomp-border">
+                    <div>
+                      <p className="text-xs text-gray-500">Rental Income</p>
+                      <p className="font-semibold text-green-600">{formatRand(stats.income)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Expenses</p>
+                      <p className="font-semibold text-red-600">{formatRand(stats.expenses)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Entries</p>
+                      <p className="font-semibold">{stats.entries}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Last Entry</p>
+                      <p className="font-semibold text-xs">{stats.lastDate || '—'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Total Expenses</p>
-                    <p className="font-semibold text-red-600">{formatRand(stats.expenses)}</p>
+                  <div className="text-xs text-gray-400 flex items-center gap-1">
+                    <Banknote size={12} />
+                    Net: <span className="font-semibold text-pomp-navy">{formatRand(stats.income - stats.expenses)}</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Entries</p>
-                    <p className="font-semibold">{stats.entries}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Last Entry</p>
-                    <p className="font-semibold">{stats.lastDate || '—'}</p>
-                  </div>
-                </div>
+                </>
               ) : (
                 <p className="text-sm text-gray-400 italic">No rental data yet.</p>
               )}
-              <div className="mt-3 pt-3 border-t border-pomp-border text-xs text-gray-400">
-                <p>Address: {prop.address || '—'}</p>
-                <p>Value: {formatRand(prop.current_market_value || 0)}</p>
-              </div>
             </div>
           )
         })}
-      </div>
+      </CardGrid>
     </div>
   )
 }
