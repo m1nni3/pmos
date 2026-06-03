@@ -9,6 +9,13 @@ import { useCache } from '../lib/cache'
 const TABS = ['Overview', 'Letting', 'Management', 'Bonds', 'Insurance', 'Units', 'History'] as const
 type Tab = typeof TABS[number]
 
+const SCHEME_MAP: Record<string, { scheme: string; agent: string }> = {
+  Oakdale:  { scheme: 'Oakdale BC',           agent: 'Trafalgar'     },
+  Malindi:  { scheme: 'George Rennie BC',      agent: 'Kemprent'      },
+  Indaba:   { scheme: 'Indaba BC SS310/1995',  agent: 'HuurKor Admin' },
+  Villeroy: { scheme: 'SS Villeroy',           agent: 'Trafalgar'     },
+}
+
 const DETAIL_FIELDS = [
   { label: 'Unit Number', key: 'unit_number' },
   { label: 'Door Number', key: 'door_number' },
