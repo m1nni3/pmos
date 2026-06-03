@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import {
   Home, ArrowLeft, UserCheck, DollarSign, ShieldCheck,
-  Landmark, Users, History, Info, MapPin, AlertCircle, Edit3, Save, X
+  Landmark, Users, History, Info, MapPin, Edit3, Save, X
 } from 'lucide-react'
 import { apiClient, formatRand } from '../lib/utils'
 import { useCache } from '../lib/cache'
 
-const TABS = ['Overview', 'Letting', 'Management', 'Bonds', 'Insurance', 'Units', 'History'] as const
+const TABS = ['Overview', 'Letting', 'Management', 'Bonds', 'Units', 'History'] as const
 type Tab = typeof TABS[number]
 
 const SCHEME_MAP: Record<string, { scheme: string; agent: string }> = {
@@ -396,39 +396,6 @@ export default function Properties() {
           </div>
         )
       })()}
-
-      {tab === 'Insurance' && (
-        <div className="card">
-          <div className="flex items-start gap-2 mb-4 p-2 bg-blue-50/50 rounded">
-            <Info size={14} className="text-blue-600 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-blue-900">BC-managed insurance. View-only — coordinate claims through the managing agent.</p>
-          </div>
-          {!detail?.insurance?.length
-            ? <div className="flex items-center gap-2 text-sm text-gray-400 italic"><AlertCircle size={14} /><span>No insurance policy data on file.</span></div>
-            : <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-gray-500 border-b border-pomp-border">
-                      {['Insurer','Broker','Policy','Coverage','Premium','Renewal'].map(h => <th key={h} className="pb-2 font-medium">{h}</th>)}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.insurance.map((i: any) => (
-                      <tr key={i.id} className="border-b border-pomp-border/50">
-                        <td className="py-2 font-medium">{i.insurer || '—'}</td>
-                        <td className="py-2 text-gray-600">{i.broker || '—'}</td>
-                        <td className="py-2 font-mono text-xs">{i.policy_number || '—'}</td>
-                        <td className="py-2">{formatRand(i.coverage_amount || 0)}</td>
-                        <td className="py-2">{formatRand(i.premium || 0)}</td>
-                        <td className="py-2 text-gray-600">{i.renewal_date || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-          }
-        </div>
-      )}
 
       {tab === 'Units' && (
         <div className="card">
