@@ -44,8 +44,8 @@ export default function Settings() {
       if (filterLedgerType && filterLedgerType !== 'all') params.append('ledger_type', filterLedgerType)
       if (filterActive && filterActive !== 'all') params.append('is_active', filterActive === 'active' ? '1' : '0')
       
-      const response = await apiClient.get(`/ledger/mapping?${params.toString()}`)
-      setMappings(Array.isArray(response) ? response : (response?.results || []))
+      const response = await apiClient.get(`/api/ledger/mapping?${params.toString()}`)
+      setMappings(response)
     } catch (error) {
       toast.error('Failed to load mappings')
       console.error(error)
@@ -61,7 +61,7 @@ export default function Settings() {
     }
     
     try {
-      const response = await apiClient.post('/ledger/mapping', {
+      const response = await apiClient.post('/api/ledger/mapping', {
         property_id: newMapping.property_id || null,
         ledger_type: newMapping.ledger_type,
         pattern: newMapping.pattern.trim(),
@@ -89,7 +89,7 @@ export default function Settings() {
   
   const handleUpdateMapping = async (id: string, updates: any) => {
     try {
-      await apiClient.put(`/ledger/mapping/${id}`, updates)
+      await apiClient.put(`/api/ledger/mapping/${id}`, updates)
       setEditingId(null)
       await fetchMappings()
       toast.success('Mapping updated successfully')
@@ -101,7 +101,7 @@ export default function Settings() {
   
   const handleDeleteMapping = async (id: string) => {
     try {
-      await apiClient.del(`/ledger/mapping/${id}`)
+      await apiClient.del(`/api/ledger/mapping/${id}`)
       setMappings(prev => prev.filter(m => m.id !== id))
       toast.success('Mapping deleted successfully')
     } catch (error) {
@@ -228,7 +228,14 @@ export default function Settings() {
             )}
           </div>
           
-          <div className="space-y-4">
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            if (editingId) {
+              handleUpdateMapping(editingId, newMapping)
+            } else {
+              handleAddMapping()
+            }
+          }} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               {/* Property Selector */}
               <div>
@@ -319,15 +326,15 @@ export default function Settings() {
             </div>
             
              <div className="flex justify-end">
-               <Button
-                 onClick={() => editingId ? handleUpdateMapping(editingId, newMapping) : handleAddMapping()}
+               <Button 
+                 type="submit"
                  isLoading={loading}
                  disabled={loading}
                >
                  {editingId ? 'Update Mapping' : 'Add Mapping'}
                </Button>
              </div>
-           </div>
+           </form>
         </div>
       </div>
       

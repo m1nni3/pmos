@@ -1,47 +1,47 @@
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router'
 import {
-  LayoutDashboard, Building2, Landmark,
-  Banknote, Wrench, Scale, Phone, FolderOpen, LogOut, FileText, Menu, X,
+  LayoutDashboard, Building2, Landmark, UserCheck, ShieldCheck,
+  Banknote, Wrench, Scale, Phone, FolderOpen, LogOut, Coins, FileText, Menu, X,
   Settings as SettingsIcon, Upload,
 } from 'lucide-react'
 import './styles.css'
 import { CacheProvider } from './lib/cache'
 
-const Overview       = lazy(() => import('./routes/overview'))
-const Properties     = lazy(() => import('./routes/properties'))
-const Finances       = lazy(() => import('./routes/finances'))
-const LeviesBanking  = lazy(() => import('./routes/levies'))
-const Maintenance    = lazy(() => import('./routes/maintenance'))
-const Reconciliation = lazy(() => import('./routes/reconciliation'))
-const Contacts       = lazy(() => import('./routes/contacts'))
-const Documents      = lazy(() => import('./routes/documents'))
-const Portals        = lazy(() => import('./routes/portals'))
-const Settings       = lazy(() => import('./routes/settings'))
-const Import         = lazy(() => import('./routes/import'))
+import Overview from './routes/overview'
+import Properties from './routes/properties'
+import Finances from './routes/finances'
+import LettingAgent from './routes/letting'
+import Management from './routes/management'
+import LeviesBanking from './routes/levies'
+import Insurance from './routes/insurance'
+import Bonds from './routes/bonds'
+import Maintenance from './routes/maintenance'
+import Reconciliation from './routes/reconciliation'
+import Contacts from './routes/contacts'
+import Documents from './routes/documents'
+import Portals from './routes/portals'
+import Settings from './routes/settings'
+import Import from './routes/import'
 import Login from './routes/login'
 
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center p-12">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pomp-navy"></div>
-    </div>
-  )
-}
-
 const tabs = [
-  { name: 'Overview',       path: '/overview',       icon: LayoutDashboard },
-  { name: 'Properties',     path: '/properties',     icon: Building2 },
-  { name: 'Finances',       path: '/finances',       icon: Landmark },
-  { name: 'Levies & Banking', path: '/levies',       icon: Banknote },
-  { name: 'Maintenance',    path: '/maintenance',    icon: Wrench },
+  { name: 'Overview', path: '/overview', icon: LayoutDashboard },
+  { name: 'Properties', path: '/properties', icon: Building2 },
+  { name: 'Finances', path: '/finances', icon: Landmark },
+  { name: 'Letting Agent', path: '/letting', icon: UserCheck },
+  { name: 'Management', path: '/management', icon: ShieldCheck },
+  { name: 'Levies & Banking', path: '/levies', icon: Banknote },
+  { name: 'Bonds', path: '/bonds', icon: Coins },
+  { name: 'Insurance', path: '/insurance', icon: FileText },
+  { name: 'Maintenance', path: '/maintenance', icon: Wrench },
   { name: 'Reconciliation', path: '/reconciliation', icon: Scale },
-  { name: 'Contacts',       path: '/contacts',       icon: Phone },
-  { name: 'Documents',      path: '/documents',      icon: FolderOpen },
-  { name: 'Import',         path: '/import',         icon: Upload },
-  { name: 'Settings',       path: '/settings',       icon: SettingsIcon },
-  { name: 'Portals',        path: '/portals',        icon: FileText },
+  { name: 'Contacts', path: '/contacts', icon: Phone },
+  { name: 'Documents', path: '/documents', icon: FolderOpen },
+  { name: 'Settings', path: '/settings', icon: SettingsIcon },
+  { name: 'Portals', path: '/portals', icon: LogOut },
+  { name: 'Import', path: '/import', icon: Upload },
 ]
 
 function Layout() {
@@ -89,22 +89,24 @@ function Layout() {
           <span className="font-heading font-bold text-pomp-navy">P.O.M.P</span>
         </div>
         <div className="p-4 lg:p-6">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/overview"       element={<Overview />} />
-              <Route path="/properties"     element={<Properties />} />
-              <Route path="/finances"       element={<Finances />} />
-              <Route path="/levies"         element={<LeviesBanking />} />
-              <Route path="/maintenance"    element={<Maintenance />} />
-              <Route path="/reconciliation" element={<Reconciliation />} />
-              <Route path="/contacts"       element={<Contacts />} />
-              <Route path="/documents"      element={<Documents />} />
-              <Route path="/settings"       element={<Settings />} />
-              <Route path="/import"         element={<Import />} />
-              <Route path="/portals"        element={<Portals />} />
-              <Route path="*" element={<Navigate to="/overview" replace />} />
-            </Routes>
-          </Suspense>
+          <Routes>
+            <Route path="/overview" element={<Overview />} />
+            <Route path="/properties" element={<Properties />} />
+            <Route path="/finances" element={<Finances />} />
+            <Route path="/letting" element={<LettingAgent />} />
+            <Route path="/management" element={<Management />} />
+            <Route path="/levies" element={<LeviesBanking />} />
+            <Route path="/insurance" element={<Insurance />} />
+            <Route path="/bonds" element={<Bonds />} />
+            <Route path="/maintenance" element={<Maintenance />} />
+            <Route path="/reconciliation" element={<Reconciliation />} />
+            <Route path="/contacts" element={<Contacts />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/import" element={<Import />} />
+            <Route path="/portals" element={<Portals />} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Routes>
         </div>
       </main>
     </div>

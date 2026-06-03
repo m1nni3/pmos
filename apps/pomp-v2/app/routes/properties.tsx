@@ -189,8 +189,8 @@ export default function Properties() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="card">
             <div className="flex items-center gap-2 mb-3"><UserCheck size={16} className="text-pomp-blue" /><h4 className="font-semibold text-pomp-navy text-sm">Letting Agent</h4></div>
-            {(() => {
-              const rows = detail && ([
+            <dl className="space-y-1.5 text-sm">
+              {detail && ([
                 ['Agent',             detail.managing_agent_name || bc.agent],
                 ['Agency',            detail.agency],
                 ['Portfolio Manager', detail.portfolio_manager],
@@ -203,15 +203,12 @@ export default function Properties() {
                 ['Payment Method',    detail.payment_method],
                 ['Branch',            detail.branch],
                 ['Branch Code',       detail.branch_code],
-              ] as [string,any][]).filter(([,v]) => v != null && v !== '')
-              return rows?.length
-                ? <dl className="space-y-1.5 text-sm">{rows.map(([label, val]) => (
-                    <div key={label} className="flex justify-between gap-2">
-                      <dt className="text-gray-500">{label}</dt><dd className="font-medium text-right">{val}</dd>
-                    </div>
-                  ))}</dl>
-                : <p className="text-sm text-gray-400 italic">No letting agent details on file. Update property_details to populate.</p>
-            })()}
+              ] as [string,any][]).filter(([,v]) => v != null && v !== '').map(([label, val]) => (
+                <div key={label} className="flex justify-between gap-2">
+                  <dt className="text-gray-500">{label}</dt><dd className="font-medium text-right">{val}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div className="card">
             <div className="flex items-center gap-2 mb-3"><DollarSign size={16} className="text-green-600" /><h4 className="font-semibold text-pomp-navy text-sm">Rental Summary</h4></div>
@@ -232,8 +229,8 @@ export default function Properties() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="card">
             <div className="flex items-center gap-2 mb-3"><ShieldCheck size={16} className="text-pomp-purple" /><h4 className="font-semibold text-pomp-navy text-sm">Body Corporate</h4></div>
-            {(() => {
-              const rows = detail && ([
+            <dl className="space-y-1.5 text-sm">
+              {detail && ([
                 ['BC Name',        detail.bc_name || bc.scheme],
                 ['BC Reg Number',  detail.bc_registration_number],
                 ['Managing Agent', detail.managing_agent_name || bc.agent],
@@ -246,15 +243,12 @@ export default function Properties() {
                 ['Branch Code',    detail.bc_branch_code],
                 ['Levy Reference', detail.bc_levy_reference],
                 ['Payment Method', detail.bc_levy_payment_method],
-              ] as [string,any][]).filter(([,v]) => v != null && v !== '')
-              return rows?.length
-                ? <dl className="space-y-1.5 text-sm">{rows.map(([label, val]) => (
-                    <div key={label} className="flex justify-between gap-2">
-                      <dt className="text-gray-500">{label}</dt><dd className="font-medium text-right">{val}</dd>
-                    </div>
-                  ))}</dl>
-                : <p className="text-sm text-gray-400 italic">No BC details on file. Update property_details to populate.</p>
-            })()}
+              ] as [string,any][]).filter(([,v]) => v != null && v !== '').map(([label, val]) => (
+                <div key={label} className="flex justify-between gap-2">
+                  <dt className="text-gray-500">{label}</dt><dd className="font-medium text-right">{val}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
           <div className="card">
             <div className="flex items-center gap-2 mb-3"><Info size={16} className="text-blue-600" /><h4 className="font-semibold text-pomp-navy text-sm">BC Insurance (Reference)</h4></div>
@@ -272,45 +266,38 @@ export default function Properties() {
         </div>
       )}
 
-      {tab === 'Bonds' && (() => {
-        // Use bonds table if populated, fall back to property_details bond fields
-        const bondsData = detail?.bonds?.length ? detail.bonds
-          : (detail?.bond_bank ? [{ id: 'pd', bank: detail.bond_bank, account_number: detail.bond_account_number, original_amount: detail.original_bond_amount, monthly_payment: detail.monthly_bond_payment, expected_payoff_date: detail.expected_payoff_date }] : [])
-        return (
-          <div>
-            {!bondsData.length
-              ? <div className="card"><p className="text-sm text-gray-400 italic">No bond data for this property.</p></div>
-              : bondsData.map((b: any) => {
-                  const monthsPaid = b.months_paid || 0
-                  const total = ((b.total_months_remaining || 0) + monthsPaid) || 1
-                  const pct = Math.min(100, (monthsPaid / total) * 100)
-                  return (
-                    <div key={b.id} className="card mb-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-pomp-navy flex items-center gap-2"><Landmark size={16} className="text-pomp-blue" />{b.bank || 'Unknown Bank'}</h3>
-                        <p className="text-xs text-gray-500">Account: {b.account_number || '—'}</p>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
-                        <div><p className="text-xs text-gray-500">Original</p><p className="font-semibold">{formatRand(b.original_amount || 0)}</p></div>
-                        <div><p className="text-xs text-gray-500">Balance</p><p className="font-semibold text-red-600">{formatRand(b.balance_remaining || 0)}</p></div>
-                        <div><p className="text-xs text-gray-500">Monthly</p><p className="font-semibold">{formatRand(b.monthly_payment || 0)}</p></div>
-                        <div><p className="text-xs text-gray-500">Payoff</p><p className="font-semibold">{b.expected_payoff_date || '—'}</p></div>
-                      </div>
-                      {monthsPaid > 0 && <>
-                        <div className="flex justify-between text-xs text-gray-500 mb-1"><span>{monthsPaid} of {total} months</span><span>{pct.toFixed(1)}% paid</span></div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-pomp-blue to-pomp-green" style={{ width: `${pct}%` }} />
-                        </div>
-                      </>}
-                      {b.payment_method && <p className="text-xs text-gray-400 mt-2">Payment: {b.payment_method}</p>}
-                      {b.provider_name && <p className="text-xs text-gray-400">Contact: {b.provider_name}{b.provider_phone ? ` · ${b.provider_phone}` : ''}</p>}
+      {tab === 'Bonds' && (
+        <div>
+          {!detail?.bonds?.length
+            ? <div className="card"><p className="text-sm text-gray-400 italic">No bond data for this property.</p></div>
+            : detail.bonds.map((b: any) => {
+                const monthsPaid = b.months_paid || 0
+                const total      = ((b.total_months_remaining || 0) + monthsPaid) || 1
+                const pct        = Math.min(100, (monthsPaid / total) * 100)
+                return (
+                  <div key={b.id} className="card mb-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="font-semibold text-pomp-navy flex items-center gap-2"><Landmark size={16} className="text-pomp-blue" />{b.bank || 'Unknown Bank'}</h3>
+                      <p className="text-xs text-gray-500">Account: {b.account_number || '—'}</p>
                     </div>
-                  )
-                })
-            }
-          </div>
-        )
-      })()}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
+                      <div><p className="text-xs text-gray-500">Original</p><p className="font-semibold">{formatRand(b.original_amount || 0)}</p></div>
+                      <div><p className="text-xs text-gray-500">Balance</p><p className="font-semibold text-red-600">{formatRand(b.balance_remaining || 0)}</p></div>
+                      <div><p className="text-xs text-gray-500">Monthly</p><p className="font-semibold">{formatRand(b.monthly_payment || 0)}</p></div>
+                      <div><p className="text-xs text-gray-500">Payoff</p><p className="font-semibold">{b.expected_payoff_date || '—'}</p></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1"><span>{monthsPaid} of {total} months</span><span>{pct.toFixed(1)}% paid</span></div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-pomp-blue to-pomp-green" style={{ width: `${pct}%` }} />
+                    </div>
+                    {b.payment_method && <p className="text-xs text-gray-400 mt-2">Payment: {b.payment_method}</p>}
+                    {b.provider_name  && <p className="text-xs text-gray-400">Contact: {b.provider_name}{b.provider_phone ? ` · ${b.provider_phone}` : ''}</p>}
+                  </div>
+                )
+              })
+          }
+        </div>
+      )}
 
       {tab === 'Insurance' && (
         <div className="card">
