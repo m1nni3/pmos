@@ -114,7 +114,16 @@ function Layout() {
 }
 
 function App() {
-  return <div>Test</div>
+  return (
+    <BrowserRouter>
+      <CacheProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={<Layout />} />
+        </Routes>
+      </CacheProvider>
+    </BrowserRouter>
+  )
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<App />)

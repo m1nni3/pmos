@@ -817,6 +817,10 @@ export default {
     if (res.status === 404 && !url.pathname.includes('.')) {
       return env.ASSETS.fetch(new Request(new URL('/', url), request))
     }
+    if (res.status === 404 && !url.pathname.includes('.')) {
+      return env.ASSETS.fetch(new Request(new URL('/', url), request))
+    }
+    return res
     return res
   },
 } as ExportedHandler<Env>
