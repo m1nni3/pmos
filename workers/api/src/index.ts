@@ -20,6 +20,11 @@ export default {
     const json = (data: unknown, status = 200) =>
       new Response(JSON.stringify(data), { status, headers: corsHeaders })
 
+    const role = request.headers.get('X-PMOS-Role') || ''
+    if (role === 'readonly' && ['POST', 'PUT', 'DELETE'].includes(method)) {
+      return json({ error: 'Forbidden: read-only access' }, 403)
+    }
+
     const body = method === 'POST' || method === 'PUT' ? await request.json().catch(() => ({})) : {}
 
     try {
@@ -375,6 +380,78 @@ export default {
         }
         const { results } = await env.DB.prepare(q).bind(...params).all()
         return json(results)
+      }
+
+      // ── Petty Cash ────────────────────────────────────────────
+      if (method === 'GET' && pathname === '/api/petty-cash') {
+        const [income, expenses, summary] = await Promise.all([
+          env.DB.prepare('SELECT * FROM petty_cash_income ORDER BY date DESC').all(),
+          env.DB.prepare('SELECT * FROM petty_cash_expenses ORDER BY date DESC').all(),
+          env.DB.prepare(`
+            SELECT
+              coalesce((SELECT sum(total) FROM petty_cash_income), 0) as total_income,
+              coalesce((SELECT sum(incl_vat) FROM petty_cash_expenses), 0) as total_expenses
+          `).first(),
+        ])
+        return json({
+          income: (income as any)?.results ?? [],
+          expenses: (expenses as any)?.results ?? [],
+          balance: ((summary as any)?.total_income ?? 0) - ((summary as any)?.total_expenses ?? 0),
+          total_income: (summary as any)?.total_income ?? 0,
+          total_expenses: (summary as any)?.total_expenses ?? 0,
+        })
+      }
+
+      if (method === 'POST' && pathname === '/api/petty-cash/income') {
+        const id = 'pci-' + crypto.randomUUID().slice(0, 8)
+        await env.DB.prepare(
+          'INSERT INTO petty_cash_income (id, date, description, total, notes) VALUES (?,?,?,?,?)'
+        ).bind(id, body.date, body.description, body.total, body.notes ?? null).run()
+        const row = await env.DB.prepare('SELECT * FROM petty_cash_income WHERE id = ?').bind(id).first()
+        return json(row, 201)
+      }
+
+      if (method === 'PUT' && pathname.match(/^\/api\/petty-cash\/income\/([^/]+)$/)) {
+        const id = pathname.split('/')[4]
+        const sets: string[] = []
+        const params: unknown[] = []
+        for (const k of ['date', 'description', 'total', 'notes'] as const) {
+          if (k in body) { sets.push(`${k} = ?`); params.push(body[k]) }
+        }
+        if (sets.length) { params.push(id); await env.DB.prepare(`UPDATE petty_cash_income SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run() }
+        const row = await env.DB.prepare('SELECT * FROM petty_cash_income WHERE id = ?').bind(id).first()
+        return json(row)
+      }
+
+      if (method === 'DELETE' && pathname.match(/^\/api\/petty-cash\/income\/([^/]+)$/)) {
+        await env.DB.prepare('DELETE FROM petty_cash_income WHERE id = ?').bind(pathname.split('/')[4]).run()
+        return json({ ok: true })
+      }
+
+      if (method === 'POST' && pathname === '/api/petty-cash/expenses') {
+        const id = 'pce-' + crypto.randomUUID().slice(0, 8)
+        await env.DB.prepare(
+          'INSERT INTO petty_cash_expenses (id, date, property, vendor, type, description, excl_vat, vat_15, incl_vat, invoice_receipt) VALUES (?,?,?,?,?,?,?,?,?,?)'
+        ).bind(id, body.date, body.property ?? null, body.vendor ?? null, body.type ?? null, body.description ?? null, body.excl_vat ?? 0, body.vat_15 ?? 0, body.incl_vat ?? 0, body.invoice_receipt ?? null).run()
+        const row = await env.DB.prepare('SELECT * FROM petty_cash_expenses WHERE id = ?').bind(id).first()
+        return json(row, 201)
+      }
+
+      if (method === 'PUT' && pathname.match(/^\/api\/petty-cash\/expenses\/([^/]+)$/)) {
+        const id = pathname.split('/')[4]
+        const sets: string[] = []
+        const params: unknown[] = []
+        for (const k of ['date', 'property', 'vendor', 'type', 'description', 'excl_vat', 'vat_15', 'incl_vat', 'invoice_receipt'] as const) {
+          if (k in body) { sets.push(`${k} = ?`); params.push(body[k]) }
+        }
+        if (sets.length) { params.push(id); await env.DB.prepare(`UPDATE petty_cash_expenses SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run() }
+        const row = await env.DB.prepare('SELECT * FROM petty_cash_expenses WHERE id = ?').bind(id).first()
+        return json(row)
+      }
+
+      if (method === 'DELETE' && pathname.match(/^\/api\/petty-cash\/expenses\/([^/]+)$/)) {
+        await env.DB.prepare('DELETE FROM petty_cash_expenses WHERE id = ?').bind(pathname.split('/')[4]).run()
+        return json({ ok: true })
       }
 
       return json({ error: 'Not found' }, 404)

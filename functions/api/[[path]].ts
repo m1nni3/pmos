@@ -1,4 +1,4 @@
-const API_WORKER = 'https://pmos-api.binos-opms.workers.dev'
+const API_WORKER = 'https://pmos-api.dawson-edc.workers.dev'
 
 export async function onRequest(context) {
   const url = new URL(context.request.url)

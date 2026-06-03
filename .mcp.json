@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "notion": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/m1nni3/notion mcp/dist/index.js"],
+      "env": {
+        "NOTION_API_KEY": "${NOTION_API_KEY}"
+      }
+    }
+  }
+}

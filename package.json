@@ -2,10 +2,15 @@
   "name": "pmos-oversight",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/web"],
+  "workspaces": [
+    "apps/web"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
     "preview": "npm run preview --workspace=apps/web"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.22.0"
   }
 }

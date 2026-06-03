@@ -1,31 +1,48 @@
 export const C = {
-  navy: '#1a2744',
-  navyL: '#243356',
-  green: '#27ae60',
-  gold: '#f5a623',
-  pink: '#e91e8c',
-  blue: '#2196f3',
   white: '#ffffff',
-  bg: '#f0f2f7',
+  bg: '#f5f6f8',
   card: '#ffffff',
-  text: '#1a2744',
-  muted: '#64748b',
-  border: '#e2e8f0',
+  surface: '#f5f6f8',
+  border: '#e4e7ec',
+  borderLight: '#f2f4f7',
+  text: '#101828',
+  textSecondary: '#667085',
+  muted: '#98a2b3',
+  primary: '#3b82f6',
+  primaryHover: '#2563eb',
+  primaryLight: '#eff6ff',
+  primaryText: '#ffffff',
+  navy: '#101828',
+  navyL: '#1e293b',
+  green: '#10b981',
+  greenLight: '#d1fae5',
   success: '#16a34a',
-  warn: '#d97706',
-  danger: '#dc2626',
+  warn: '#f59e0b',
+  warnLight: '#fef3c7',
+  gold: '#f59e0b',
+  danger: '#ef4444',
+  dangerLight: '#fee2e2',
+  blue: '#3b82f6',
+  pink: '#ec4899',
+  sidebar: '#101828',
+  sidebarHover: '#1e293b',
+  sidebarActive: '#3b82f6',
+  sidebarText: '#98a2b3',
+  sidebarTextActive: '#ffffff',
 }
 
 export const FONT = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-export const FONT_SERIF = "'DM Serif Display', 'Georgia', serif"
+export const FONT_DISPLAY = "'DM Serif Display', Georgia, serif"
+export const FONT_SERIF = FONT_DISPLAY
 
 export const T = {
-  xs: '11px',
-  sm: '13px',
-  base: '14px',
-  lg: '16px',
-  xl: '20px',
-  '2xl': '24px',
+  xs: '0.6875rem',
+  sm: '0.8125rem',
+  base: '0.875rem',
+  lg: '1rem',
+  xl: '1.125rem',
+  '2xl': '1.5rem',
+  '3xl': '1.875rem',
 }
 
 export const S = {
@@ -38,27 +55,28 @@ export const S = {
 }
 
 export const R = {
-  sm: '6px',
-  md: '8px',
-  lg: '12px',
-  xl: '16px',
+  sm: '4px',
+  md: '6px',
+  lg: '8px',
+  xl: '12px',
   full: '9999px',
 }
 
 export const SHADOW = {
-  sm: '0 1px 3px rgba(0,0,0,0.04)',
-  md: '0 4px 12px rgba(0,0,0,0.06)',
-  lg: '0 8px 24px rgba(0,0,0,0.08)',
+  sm: '0 1px 2px rgba(16,24,40,0.04)',
+  md: '0 4px 6px -2px rgba(16,24,40,0.04), 0 8px 16px -4px rgba(16,24,40,0.06)',
+  lg: '0 12px 24px -8px rgba(16,24,40,0.08), 0 4px 8px -4px rgba(16,24,40,0.04)',
+  xl: '0 20px 40px -12px rgba(16,24,40,0.12)',
 }
 
-export const EASE = '0.15s ease'
-export const EASE_OUT = '0.2s ease-out'
+export const EASE = '150ms ease-out'
+export const EASE_OUT = '200ms ease-out'
+
+export const FOCUS = `0 0 0 2px #fff, 0 0 0 4px ${C.primary}`
+
+export const focusStyle = { outline: 'none', boxShadow: FOCUS }
 
 export const fmt = (v) => 'R ' + Number(v || 0).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const fmtM = (v) => 'R ' + (Number(v || 0) / 1e6).toFixed(2) + 'M'
 
-export const ICON = 'https://img.icons8.com/?size=160&id=0uYcfoG9OUaw&format=png'
-
-export const FOCUS = `0 0 0 2px #fff, 0 0 0 4px ${C.blue}`
-
-export const focusStyle = { outline: 'none', boxShadow: FOCUS }
+export const ICON = ''

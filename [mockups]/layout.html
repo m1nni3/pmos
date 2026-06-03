@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>BINOS — Wireframe</title>
+<style>
+/* ── Reset & Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f8f9fa}
+body{width:1920px;height:1080px;overflow:hidden;color:#1e293b;display:flex;flex-direction:column;background:#f1f3f5}
+/* ── Color tokens (grayscale) ── */
+:root{
+  --white:#fff;
+  --gray-50:#f8f9fa;
+  --gray-100:#f1f3f5;
+  --gray-200:#e9ecef;
+  --gray-300:#dee2e6;
+  --gray-400:#ced4da;
+  --gray-500:#adb5bd;
+  --gray-600:#6c757d;
+  --gray-700:#495057;
+  --gray-800:#343a40;
+  --gray-900:#212529;
+  --black:#000;
+  --accent:#4a6cf7;
+  --radius:4px;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+
+/* ── Header ── */
+.global-header{
+  height:48px;
+  background:var(--gray-900);
+  color:var(--gray-100);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  flex-shrink:0;
+  gap:16px;
+}
+.global-header .logo{
+  font-size:16px;font-weight:700;letter-spacing:1px;
+  color:var(--white);margin-right:24px;
+}
+.global-header .logo span{color:var(--gray-500);font-weight:400;}
+.primary-nav{display:flex;gap:4px;flex:1;}
+.primary-nav a{
+  padding:6px 16px;border-radius:var(--radius);
+  color:var(--gray-400);text-decoration:none;font-size:13px;
+  transition:.15s;white-space:nowrap;
+}
+.primary-nav a:hover{color:var(--white);background:var(--gray-700);}
+.primary-nav a.active{color:var(--white);background:var(--gray-700);font-weight:600;}
+.header-right{display:flex;align-items:center;gap:16px;font-size:13px;color:var(--gray-400);}
+.header-right .badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+
+/* ── Page Toolbar ── */
+.page-toolbar{
+  height:40px;
+  background:var(--white);
+  border-bottom:1px solid var(--gray-300);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:12px;
+  flex-shrink:0;
+}
+.page-toolbar .title{font-size:15px;font-weight:600;color:var(--gray-900);}
+.page-toolbar .subtitle{font-size:12px;color:var(--gray-500);margin-left:4px;}
+.page-toolbar .spacer{flex:1;}
+.page-toolbar .action{font-size:12px;color:var(--gray-600);cursor:pointer;padding:4px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);background:var(--gray-50);}
+.page-toolbar .action:hover{background:var(--gray-200);}
+
+/* ── Secondary Nav (sub-tabs) ── */
+.secondary-nav{
+  height:36px;
+  background:var(--gray-50);
+  border-bottom:1px solid var(--gray-300);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:2px;
+  flex-shrink:0;
+}
+.secondary-nav a{
+  padding:5px 14px;
+  font-size:12px;color:var(--gray-600);text-decoration:none;
+  border-bottom:2px solid transparent;
+  transition:.15s;
+}
+.secondary-nav a:hover{color:var(--gray-900);}
+.secondary-nav a.active{color:var(--gray-900);font-weight:600;border-bottom-color:var(--accent);}
+
+/* ── Summary Strip ── */
+.summary-strip{
+  height:48px;
+  background:var(--white);
+  border-bottom:1px solid var(--gray-300);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:24px;
+  flex-shrink:0;
+}
+.summary-item{
+  display:flex;align-items:baseline;gap:6px;
+}
+.summary-item .label{font-size:11px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;}
+.summary-item .value{font-size:18px;font-weight:700;color:var(--gray-900);}
+.summary-item .value.negative{color:#e03131;}
+.summary-item .value.positive{color:#2f9e44;}
+.summary-divider{width:1px;height:24px;background:var(--gray-300);}
+
+/* ── Filter Bar ── */
+.filter-bar{
+  height:40px;
+  background:var(--gray-50);
+  border-bottom:1px solid var(--gray-300);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:8px;
+  flex-shrink:0;
+}
+.filter-bar .filter-label{font-size:11px;color:var(--gray-500);text-transform:uppercase;}
+.filter-bar select,.filter-bar input{
+  font-size:12px;padding:4px 8px;border:1px solid var(--gray-300);border-radius:var(--radius);
+  background:var(--white);color:var(--gray-800);height:28px;
+}
+.filter-bar .search{width:200px;padding-left:24px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:6px center;}
+
+/* ── Master-Detail Workspace ── */
+.workspace{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ── Master (Data Grid) ── */
+.master{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-right:1px solid var(--gray-300);
+}
+.master .grid-header{
+  display:flex;
+  align-items:center;
+  height:36px;
+  padding:0 20px;
+  background:var(--gray-100);
+  border-bottom:1px solid var(--gray-300);
+  font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.5px;
+}
+.master .grid-header .col{flex:1;}
+.master .grid-scroll{flex:1;overflow-y:auto;}
+
+/* ── Data Table ── */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{
+  position:sticky;top:0;z-index:2;
+  padding:8px 16px;
+  font-size:10px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.6px;
+  text-align:left;
+  background:var(--gray-50);
+  border-bottom:1px solid var(--gray-300);
+}
+.data-table td{
+  padding:10px 16px;
+  font-size:13px;color:var(--gray-700);
+  border-bottom:1px solid var(--gray-200);
+  cursor:pointer;
+  transition:.1s;
+}
+.data-table tr:hover td{background:var(--gray-100);}
+.data-table tr.selected td{background:#e8f0fe;}
+.data-table td:first-child{font-weight:600;}
+.data-table .status{
+  display:inline-block;padding:2px 8px;border-radius:10px;
+  font-size:11px;font-weight:600;
+}
+.data-table .status.matched{background:#d3f9d8;color:#2b8a3e;}
+.data-table .status.pending{background:#fff3bf;color:#e67700;}
+.data-table .status.exception{background:#ffe0e0;color:#e03131;}
+.data-table .status.verified{background:#d0ebff;color:#1971c2;}
+.data-table .status.unchecked{background:var(--gray-200);color:var(--gray-600);}
+.data-table .positive{color:#2f9e44;}
+.data-table .negative{color:#e03131;}
+
+/* ── Detail Panel ── */
+.detail-panel{
+  width:480px;
+  display:flex;
+  flex-direction:column;
+  background:var(--white);
+  flex-shrink:0;
+  overflow:hidden;
+}
+.detail-panel .panel-header{
+  display:flex;
+  align-items:center;
+  height:44px;
+  padding:0 16px;
+  border-bottom:1px solid var(--gray-300);
+  gap:8px;
+  flex-shrink:0;
+}
+.detail-panel .panel-header h3{font-size:14px;font-weight:600;color:var(--gray-900);flex:1;}
+.detail-panel .panel-header .close{font-size:18px;color:var(--gray-400);cursor:pointer;padding:2px 6px;}
+.detail-panel .panel-header .close:hover{color:var(--gray-700);}
+.detail-panel .panel-content{flex:1;overflow-y:auto;padding:16px;}
+.detail-section{margin-bottom:20px;}
+.detail-section h4{font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.detail-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--gray-200);}
+.detail-row .lbl{color:var(--gray-500);}
+.detail-row .val{font-weight:500;color:var(--gray-800);}
+.detail-row .val.variance{font-weight:700;}
+.activity-item{padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px;color:var(--gray-600);}
+.activity-item strong{color:var(--gray-800);}
+.activity-item .time{font-size:11px;color:var(--gray-400);}
+.doc-item{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:var(--gray-700);}
+.doc-item .icon{color:var(--gray-400);font-size:14px;}
+
+/* ── Empty state ── */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray-400);gap:8px;padding:40px;}
+.empty-state .icon{font-size:36px;opacity:.5;}
+.empty-state .text{font-size:14px;}
+.empty-state .sub{font-size:12px;color:var(--gray-400);}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-400);}
+
+/* ── Page sections (toggle visibility) ── */
+.page{display:none;}
+.page.active{display:flex;flex-direction:column;height:100%;width:100%;}
+
+/* ── Cards inside pages ── */
+.card-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;padding:16px;background:var(--gray-50);}
+.stat-card{background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:14px 16px;}
+.stat-card .stat-label{font-size:11px;color:var(--gray-500);text-transform:uppercase;}
+.stat-card .stat-value{font-size:24px;font-weight:700;color:var(--gray-900);margin-top:2px;}
+.stat-card .stat-change{font-size:12px;color:var(--gray-500);margin-top:4px;}
+
+/* ── Placeholder ── */
+.placeholder-section{padding:16px;color:var(--gray-400);font-size:13px;}
+
+/* ── Grid view for portfolio cards ── */
+.property-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;}
+.prop-card{background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:16px;display:flex;gap:12px;cursor:pointer;}
+.prop-card .avatar{width:40px;height:40px;border-radius:4px;background:var(--gray-300);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:var(--gray-600);flex-shrink:0;}
+.prop-card .info{flex:1;}
+.prop-card .name{font-size:14px;font-weight:600;color:var(--gray-900);}
+.prop-card .addr{font-size:12px;color:var(--gray-500);}
+.prop-card .stats{display:flex;gap:16px;margin-top:6px;font-size:12px;color:var(--gray-600);}
+
+/* ── Checksum / keyline ── */
+.checksum-bar{
+  height:24px;
+  background:var(--gray-900);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  color:var(--gray-500);
+  letter-spacing:1px;
+  flex-shrink:0;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ GLOBAL HEADER ═══ -->
+<header class="global-header">
+  <div class="logo">BINOS <span>| OVERSIGHT</span></div>
+  <nav class="primary-nav">
+    <a href="#" class="active" data-page="portfolio">Portfolio</a>
+    <a href="#" data-page="financials">Financials</a>
+    <a href="#" data-page="levy">Levy Verification</a>
+    <a href="#" data-page="rental">Rental Verification</a>
+    <a href="#" data-page="municipal">Municipal Verification</a>
+    <a href="#" data-page="exceptions">Exception Queue</a>
+    <a href="#" data-page="reports">Reports</a>
+    <a href="#" data-page="settings">Settings</a>
+  </nav>
+  <div class="header-right">
+    <span>Verification Period: <strong>Mar 2026</strong></span>
+    <span class="badge">3 Exceptions</span>
+    <span>JD</span>
+  </div>
+</header>
+
+<!-- ═══ PAGE: PORTFOLIO ═══ -->
+<div class="page active" id="page-portfolio">
+  <div class="page-toolbar">
+    <span class="title">Portfolio Overview</span>
+    <span class="subtitle">4 Properties</span>
+    <div class="spacer"></div>
+    <span class="action">Add Property</span>
+    <span class="action">Export</span>
+  </div>
+  <div class="card-grid">
+    <div class="stat-card"><div class="stat-label">Total Units</div><div class="stat-value">124</div><div class="stat-change">14 managed</div></div>
+    <div class="stat-card"><div class="stat-label">Occupancy</div><div class="stat-value">94%</div><div class="stat-change">116 occupied</div></div>
+    <div class="stat-card"><div class="stat-label">Monthly Revenue</div><div class="stat-value">R1.8M</div><div class="stat-change">+3.2% vs budget</div></div>
+    <div class="stat-card"><div class="stat-label">Open Work Orders</div><div class="stat-value">7</div><div class="stat-change">3 urgent</div></div>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <select><option>All Properties</option><option>Oakdale</option><option>Malindi</option><option>Villeroy</option><option>Indaba</option></select>
+    <select><option>All Status</option><option>Active</option><option>Maintenance</option></select>
+    <input class="search" placeholder="Search properties…">
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="property-grid">
+        <div class="prop-card"><div class="avatar">O</div><div class="info"><div class="name">Oakdale</div><div class="addr">42 Acacia Ave, Oakdale</div><div class="stats"><span>42 units</span><span>98% occ</span><span>R620K rev</span></div></div></div>
+        <div class="prop-card"><div class="avatar">M</div><div class="info"><div class="name">Malindi</div><div class="addr">15 Beach Rd, Malindi</div><div class="stats"><span>28 units</span><span>89% occ</span><span>R410K rev</span></div></div></div>
+        <div class="prop-card"><div class="avatar">V</div><div class="info"><div class="name">Villeroy</div><div class="addr">8 Main St, Villeroy</div><div class="stats"><span>36 units</span><span>92% occ</span><span>R530K rev</span></div></div></div>
+        <div class="prop-card"><div class="avatar">I</div><div class="info"><div class="name">Indaba</div><div class="addr">22 Freedom Way, Indaba</div><div class="stats"><span>18 units</span><span>100% occ</span><span>R290K rev</span></div></div></div>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Oakdale — Details</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Property Info</h4><div class="detail-row"><span class="lbl">Units</span><span class="val">42</span></div><div class="detail-row"><span class="lbl">Occupancy</span><span class="val">98%</span></div><div class="detail-row"><span class="lbl">Monthly Revenue</span><span class="val">R620,000</span></div><div class="detail-row"><span class="lbl">Body Corp</span><span class="val">Oakdale HOA</span></div></div>
+        <div class="detail-section"><h4>Recent Activity</h4><div class="activity-item"><strong>Levy payment received</strong> — R124K <span class="time">2h ago</span></div><div class="activity-item"><strong>Work order #WO-042</strong> completed <span class="time">1d ago</span></div><div class="activity-item"><strong>Rental deposit</strong> — Unit 12 <span class="time">3d ago</span></div></div>
+        <div class="detail-section"><h4>Upcoming</h4><div class="activity-item"><strong>Municipal inspection</strong> — 2 Apr 2026</div><div class="activity-item"><strong>AGM</strong> — 15 Apr 2026</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: FINANCIALS ═══ -->
+<div class="page" id="page-financials">
+  <div class="page-toolbar">
+    <span class="title">Financials</span>
+    <span class="subtitle">Oakdale · Mar 2026</span>
+    <div class="spacer"></div>
+    <span class="action">Export PDF</span>
+    <span class="action">Import CSV</span>
+  </div>
+  <div class="secondary-nav">
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Ledgers</a>
+    <a href="#">P&amp;L</a>
+    <a href="#">Maintenance</a>
+    <a href="#">Reconciliation</a>
+  </div>
+  <div class="summary-strip">
+    <div class="summary-item"><span class="label">Income YTD</span><span class="value positive">R2.1M</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Expenses YTD</span><span class="value negative">R1.4M</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Net YTD</span><span class="value">R680K</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Budget Variance</span><span class="value positive">+3.2%</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Open WOs</span><span class="value">7</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Recon Exceptions</span><span class="value negative">3</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Periods Reconciled</span><span class="value">11/12</span></div>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="placeholder-section" style="padding:40px;text-align:center;color:var(--gray-400);font-size:16px;">
+        Financial Dashboard — Charts &amp; summary tables<br>
+        <span style="font-size:12px;">Cash flow, Budget vs Actual, Maintenance breakdown, Recon status</span>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Financial Details</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Cash Position</h4><div class="detail-row"><span class="lbl">Operating</span><span class="val">R142,000</span></div><div class="detail-row"><span class="lbl">Reserve</span><span class="val">R380,000</span></div></div>
+        <div class="detail-section"><h4>Month Over Month</h4><div class="detail-row"><span class="lbl">Income</span><span class="val positive">+2.1%</span></div><div class="detail-row"><span class="lbl">Expenses</span><span class="val negative">+1.8%</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: LEVY VERIFICATION ═══ -->
+<div class="page" id="page-levy">
+  <div class="page-toolbar">
+    <span class="title">Levy Verification</span>
+    <span class="subtitle">Oakdale · Mar 2026</span>
+    <div class="spacer"></div>
+    <span class="action">Run Verification</span>
+    <span class="action">Export</span>
+  </div>
+  <div class="summary-strip">
+    <div class="summary-item"><span class="label">Total Levies</span><span class="value">R186,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Agent Collected</span><span class="value">R178,560</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Body Corp Received</span><span class="value">R172,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Variance</span><span class="value negative">-R6,560</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Matched</span><span class="value">9</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Exceptions</span><span class="value negative">3</span></div>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <select><option>All Periods</option><option>Mar 2026</option><option>Feb 2026</option><option>Jan 2026</option></select>
+    <select><option>All Status</option><option>Matched</option><option>Pending</option><option>Exception</option></select>
+    <select><option>All Properties</option><option>Oakdale</option><option>Malindi</option><option>Villeroy</option><option>Indaba</option></select>
+    <input class="search" placeholder="Search…">
+    <div style="flex:1"></div>
+    <span style="font-size:11px;color:var(--gray-400);">12 periods • 3 exceptions</span>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="grid-header"><span class="col">Period</span><span class="col">Agent Claims Paid</span><span class="col">Body Corp Invoiced</span><span class="col">Body Corp Received</span><span class="col">Variance</span><span class="col">Status</span></div>
+      <div class="grid-scroll">
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Agent Claims Paid</th><th>Body Corp Invoiced</th><th>Body Corp Received</th><th>Variance</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="selected"><td>Mar 2026</td><td>R178,560</td><td>R186,000</td><td>R172,000</td><td class="negative">-R6,560</td><td><span class="status exception">Exception</span></td></tr>
+            <tr><td>Feb 2026</td><td>R182,300</td><td>R186,000</td><td>R182,300</td><td class="positive">R0</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>Jan 2026</td><td>R179,800</td><td>R186,000</td><td>R179,800</td><td class="positive">R0</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>Dec 2025</td><td>R186,000</td><td>R186,000</td><td>R186,000</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>Nov 2025</td><td>R162,400</td><td>R186,000</td><td>R162,400</td><td class="positive">R0</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>Oct 2025</td><td>R186,000</td><td>R186,000</td><td>R186,000</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>Sep 2025</td><td>R175,200</td><td>R186,000</td><td>R170,000</td><td class="negative">-R5,200</td><td><span class="status exception">Exception</span></td></tr>
+            <tr><td>Aug 2025</td><td>R186,000</td><td>R186,000</td><td>R186,000</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>Jul 2025</td><td>R180,100</td><td>R186,000</td><td>R180,100</td><td class="positive">R0</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>Jun 2025</td><td>R186,000</td><td>R186,000</td><td>R186,000</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>May 2025</td><td>R186,000</td><td>R186,000</td><td>R186,000</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>Apr 2025</td><td>R178,560</td><td>R186,000</td><td>R178,560</td><td class="positive">R0</td><td><span class="status matched">Matched</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Mar 2026 · Levy Verification</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Verification Summary</h4><div class="detail-row"><span class="lbl">Period</span><span class="val">March 2026</span></div><div class="detail-row"><span class="lbl">Agent Claims Paid</span><span class="val">R178,560</span></div><div class="detail-row"><span class="lbl">Body Corp Invoiced</span><span class="val">R186,000</span></div><div class="detail-row"><span class="lbl">Body Corp Received</span><span class="val">R172,000</span></div><div class="detail-row"><span class="lbl">Variance</span><span class="val variance negative">-R6,560</span></div><div class="detail-row"><span class="lbl">Status</span><span class="val"><span class="status exception">Exception</span></span></div></div>
+        <div class="detail-section"><h4>Exception Details</h4><div style="font-size:13px;color:var(--gray-700);padding:8px 0;">Agent paid R178,560 in claims but body corp only invoiced R186,000 and received R172,000. Variance of R6,560 unaccounted.</div></div>
+        <div class="detail-section"><h4>Activity</h4><div class="activity-item"><strong>Verification run</strong> — Auto-detected <span class="time">Today 09:23</span></div><div class="activity-item"><strong>Prior period</strong> Feb 2026 — Matched <span class="time">28 Mar 2026</span></div><div class="activity-item"><strong>Exception flagged</strong> — Variance &gt; R5,000 <span class="time">Today 09:23</span></div></div>
+        <div class="detail-section"><h4>Supporting Documents</h4><div class="doc-item"><span class="icon">📄</span> Agent_Claim_202603.pdf</div><div class="doc-item"><span class="icon">📄</span> BC_Invoice_202603.pdf</div><div class="doc-item"><span class="icon">📄</span> Payment_Receipt_202603.pdf</div></div>
+        <div class="detail-section"><h4>Actions</h4><div style="display:flex;gap:8px;margin-top:8px;"><span style="padding:6px 14px;background:var(--gray-900);color:var(--white);border-radius:4px;font-size:12px;cursor:pointer;">Mark Reviewed</span><span style="padding:6px 14px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;cursor:pointer;">Resolve</span><span style="padding:6px 14px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;cursor:pointer;">Escalate</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: RENTAL VERIFICATION ═══ -->
+<div class="page" id="page-rental">
+  <div class="page-toolbar">
+    <span class="title">Rental Verification</span>
+    <span class="subtitle">Oakdale · Mar 2026</span>
+    <div class="spacer"></div>
+    <span class="action">Run Verification</span>
+    <span class="action">Export</span>
+  </div>
+  <div class="summary-strip">
+    <div class="summary-item"><span class="label">Total Rent Collected</span><span class="value">R425,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Expected Rent</span><span class="value">R430,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Deposits Held</span><span class="value">R86,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Variance</span><span class="value negative">-R5,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Matched</span><span class="value">10</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Exceptions</span><span class="value negative">2</span></div>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Filter</span>
+    <select><option>All Periods</option><option>Mar 2026</option><option>Feb 2026</option></select>
+    <select><option>All Status</option><option>Matched</option><option>Pending</option><option>Exception</option></select>
+    <input class="search" placeholder="Search…">
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="grid-header"><span class="col">Unit</span><span class="col">Tenant</span><span class="col">Rent Due</span><span class="col">Rent Collected</span><span class="col">Deposit</span><span class="col">Status</span></div>
+      <div class="grid-scroll">
+        <table class="data-table">
+          <thead><tr><th>Unit</th><th>Tenant</th><th>Rent Due</th><th>Rent Collected</th><th>Deposit</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="selected"><td>101</td><td>J. Smith</td><td>R12,000</td><td>R12,000</td><td>R24,000</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>102</td><td>P. Adams</td><td>R9,500</td><td>R9,500</td><td>R19,000</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>103</td><td>L. Nkosi</td><td>R11,000</td><td>R10,000</td><td>R22,000</td><td><span class="status exception">Exception</span></td></tr>
+            <tr><td>104</td><td>T. Botha</td><td>R8,500</td><td>R8,500</td><td>R17,000</td><td><span class="status matched">Matched</span></td></tr>
+            <tr><td>105</td><td>M. Dlamini</td><td>R13,000</td><td>R0</td><td>R26,000</td><td><span class="status pending">Pending</span></td></tr>
+            <tr><td>106</td><td>K. George</td><td>R10,000</td><td>R10,000</td><td>R20,000</td><td><span class="status verified">Verified</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Unit 103 · Rental Verification</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Verification Summary</h4><div class="detail-row"><span class="lbl">Unit</span><span class="val">103</span></div><div class="detail-row"><span class="lbl">Tenant</span><span class="val">L. Nkosi</span></div><div class="detail-row"><span class="lbl">Rent Due</span><span class="val">R11,000</span></div><div class="detail-row"><span class="lbl">Rent Collected</span><span class="val negative">R10,000</span></div><div class="detail-row"><span class="lbl">Deposit Held</span><span class="val">R22,000</span></div><div class="detail-row"><span class="lbl">Variance</span><span class="val variance negative">-R1,000</span></div><div class="detail-row"><span class="lbl">Status</span><span class="val"><span class="status exception">Exception</span></span></div></div>
+        <div class="detail-section"><h4>Activity</h4><div class="activity-item"><strong>Rent shortfall</strong> — R1,000 underpaid <span class="time">2 Apr 2026</span></div><div class="activity-item"><strong>Reminder sent</strong> — 5d overdue <span class="time">1 Apr 2026</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: MUNICIPAL VERIFICATION ═══ -->
+<div class="page" id="page-municipal">
+  <div class="page-toolbar">
+    <span class="title">Municipal Verification</span>
+    <span class="subtitle">Oakdale · Mar 2026</span>
+    <div class="spacer"></div>
+    <span class="action">Run Verification</span>
+    <span class="action">Export</span>
+  </div>
+  <div class="summary-strip">
+    <div class="summary-item"><span class="label">Municipal Charged</span><span class="value">R94,200</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Agent Collected</span><span class="value">R94,200</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Paid to Municipality</span><span class="value">R90,000</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Variance</span><span class="value negative">-R4,200</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Matched</span><span class="value">8</span></div>
+    <div class="summary-divider"></div>
+    <div class="summary-item"><span class="label">Exceptions</span><span class="value negative">1</span></div>
+  </div>
+  <div class="filter-bar">
+    <span class="label" style="font-size:11px;color:var(--gray-500);text-transform:uppercase;">Service</span>
+    <select><option>All Services</option><option>Water</option><option>Electricity</option><option>Sewerage</option><option>Refuse</option></select>
+    <select><option>All Status</option><option>Matched</option><option>Pending</option><option>Exception</option></select>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="grid-header"><span class="col">Period</span><span class="col">Municipal Charged</span><span class="col">Agent Collected</span><span class="col">Paid to Municipal</span><span class="col">Variance</span><span class="col">Status</span></div>
+      <div class="grid-scroll">
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Municipal Charged</th><th>Agent Collected</th><th>Paid to Municipal</th><th>Variance</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="selected"><td>Mar 2026</td><td>R94,200</td><td>R94,200</td><td>R90,000</td><td class="negative">-R4,200</td><td><span class="status exception">Exception</span></td></tr>
+            <tr><td>Feb 2026</td><td>R91,800</td><td>R91,800</td><td>R91,800</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+            <tr><td>Jan 2026</td><td>R95,100</td><td>R95,100</td><td>R95,100</td><td class="positive">R0</td><td><span class="status verified">Verified</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Mar 2026 · Municipal</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Verification Summary</h4><div class="detail-row"><span class="lbl">Municipal Charged</span><span class="val">R94,200</span></div><div class="detail-row"><span class="lbl">Agent Collected</span><span class="val">R94,200</span></div><div class="detail-row"><span class="lbl">Paid to Municipal</span><span class="val negative">R90,000</span></div><div class="detail-row"><span class="lbl">Variance</span><span class="val variance negative">-R4,200</span></div><div class="detail-row"><span class="lbl">Status</span><span class="val"><span class="status exception">Exception</span></span></div></div>
+        <div class="detail-section"><h4>Activity</h4><div class="activity-item"><strong>Payment shortfall</strong> — R4,200 not remitted <span class="time">Today</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: EXCEPTION QUEUE ═══ -->
+<div class="page" id="page-exceptions">
+  <div class="page-toolbar">
+    <span class="title">Exception Queue</span>
+    <span class="subtitle">6 Open Exceptions</span>
+    <div class="spacer"></div>
+    <span class="action">Resolve All</span>
+    <span class="action">Export</span>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Severity</span>
+    <select><option>All</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+    <select><option>Module</option><option>Levy</option><option>Rental</option><option>Municipal</option></select>
+    <select><option>Property</option><option>All</option></select>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div class="grid-header"><span class="col">Severity</span><span class="col">Property</span><span class="col">Module</span><span class="col">Period</span><span class="col">Description</span><span class="col">Age</span></div>
+      <div class="grid-scroll">
+        <table class="data-table">
+          <thead><tr><th>Severity</th><th>Property</th><th>Module</th><th>Period</th><th>Description</th><th>Age</th></tr></thead>
+          <tbody>
+            <tr class="selected"><td><span class="status exception">Critical</span></td><td>Oakdale</td><td>Levy</td><td>Mar 2026</td><td>Variance R6,560 — funds unaccounted</td><td>2h</td></tr>
+            <tr><td><span class="status exception">High</span></td><td>Villeroy</td><td>Municipal</td><td>Mar 2026</td><td>R4,200 not remitted</td><td>1d</td></tr>
+            <tr><td><span class="status pending">Medium</span></td><td>Oakdale</td><td>Rental</td><td>Mar 2026</td><td>Unit 103 shortfall R1,000</td><td>3d</td></tr>
+            <tr><td><span class="status pending">Medium</span></td><td>Oakdale</td><td>Levy</td><td>Sep 2025</td><td>Variance R5,200 — unresolved</td><td>14d</td></tr>
+            <tr><td><span class="status pending">Low</span></td><td>Malindi</td><td>Rental</td><td>Mar 2026</td><td>Unit 207 deposit discrepancy</td><td>5d</td></tr>
+            <tr><td><span class="status pending">Low</span></td><td>Indaba</td><td>Levy</td><td>Feb 2026</td><td>Late payment fee mismatch</td><td>21d</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Exception Detail</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="detail-section"><h4>Exception #EX-001</h4><div class="detail-row"><span class="lbl">Severity</span><span class="val"><span class="status exception">Critical</span></span></div><div class="detail-row"><span class="lbl">Module</span><span class="val">Levy Verification</span></div><div class="detail-row"><span class="lbl">Property</span><span class="val">Oakdale</span></div><div class="detail-row"><span class="lbl">Period</span><span class="val">March 2026</span></div></div>
+        <div class="detail-section"><h4>Audit Trail</h4><div class="activity-item"><strong>Created</strong> — Auto-detected during verification <span class="time">Today 09:23</span></div><div class="activity-item"><strong>Notified</strong> — Finance team <span class="time">Today 09:24</span></div><div class="activity-item"><strong>Escalated</strong> — To senior reviewer <span class="time">Today 10:00</span></div></div>
+        <div class="detail-section"><h4>Actions</h4><div style="display:flex;gap:8px;flex-wrap:wrap;"><span style="padding:6px 14px;background:var(--gray-900);color:var(--white);border-radius:4px;font-size:12px;cursor:pointer;">Mark Reviewed</span><span style="padding:6px 14px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;cursor:pointer;">Assign</span><span style="padding:6px 14px;border:1px solid var(--gray-300);border-radius:4px;font-size:12px;cursor:pointer;">Add Note</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: REPORTS ═══ -->
+<div class="page" id="page-reports">
+  <div class="page-toolbar">
+    <span class="title">Reports</span>
+    <span class="subtitle">Generate &amp; schedule</span>
+    <div class="spacer"></div>
+    <span class="action">New Report</span>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div style="padding:16px;">
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:20px;margin-bottom:16px;">
+          <div style="font-size:14px;font-weight:600;color:var(--gray-900);margin-bottom:16px;">Generate Report</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">Report Type</div><select style="width:100%;padding:6px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>Verification Summary</option><option>Exception Report</option><option>Financial Statement</option><option>Reconciliation Report</option></select></div>
+            <div><div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">Property</div><select style="width:100%;padding:6px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>All Properties</option></select></div>
+            <div><div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">Period From</div><select style="width:100%;padding:6px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>Jan 2026</option></select></div>
+            <div><div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">Period To</div><select style="width:100%;padding:6px 8px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;"><option>Mar 2026</option></select></div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <span style="padding:8px 20px;background:var(--gray-900);color:var(--white);border-radius:4px;font-size:13px;cursor:pointer;">Generate</span>
+            <span style="padding:8px 20px;border:1px solid var(--gray-300);border-radius:4px;font-size:13px;cursor:pointer;">Schedule</span>
+          </div>
+        </div>
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--gray-900);margin-bottom:12px;">Recent Reports</div>
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Type</th><th>Generated</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Verification Summary Q1 2026</td><td>Verification</td><td>28 Mar 2026</td><td><span class="status matched">Ready</span></td></tr>
+              <tr><td>Exception Report Mar 2026</td><td>Exception</td><td>30 Mar 2026</td><td><span class="status pending">Generating</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Report Preview</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="placeholder-section" style="padding:40px;text-align:center;color:var(--gray-400);font-size:14px;">
+          Select a report to preview<br>
+          <span style="font-size:12px;">or generate a new one</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: SETTINGS ═══ -->
+<div class="page" id="page-settings">
+  <div class="page-toolbar">
+    <span class="title">Settings</span>
+    <span class="subtitle">Configure BINOS</span>
+    <div class="spacer"></div>
+    <span class="action">Save</span>
+  </div>
+  <div class="workspace" style="border-top:1px solid var(--gray-300);">
+    <div class="master">
+      <div style="padding:16px;display:grid;gap:16px;">
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--gray-900);margin-bottom:12px;">Verification Settings</div>
+          <div style="display:grid;gap:8px;">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--gray-700);">Auto-run verification</span><span style="padding:2px 10px;background:var(--gray-200);border-radius:10px;font-size:11px;">Enabled</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--gray-700);">Exception threshold (ZAR)</span><span style="font-weight:600;font-size:13px;">R5,000</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--gray-700);">Notification on exception</span><span style="padding:2px 10px;background:var(--gray-200);border-radius:10px;font-size:11px;">Enabled</span></div>
+          </div>
+        </div>
+        <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:6px;padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--gray-900);margin-bottom:12px;">Display</div>
+          <div style="display:grid;gap:8px;">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--gray-700);">Theme</span><span style="font-weight:600;font-size:13px;">Light</span></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:13px;color:var(--gray-700);">Default property view</span><span style="font-weight:600;font-size:13px;">All Properties</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-panel">
+      <div class="panel-header"><h3>Setting Details</h3><span class="close">✕</span></div>
+      <div class="panel-content">
+        <div class="placeholder-section" style="padding:40px;text-align:center;color:var(--gray-400);font-size:14px;">
+          Click a setting for more info
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM BAR ═══ -->
+<div class="checksum-bar">BINOS OVERSIGHT · WIREFRAME v1.0 · 1920×1080 · GRAYSCALE</div>
+
+<script>
+// ── Section switching ──
+document.querySelectorAll('.primary-nav a').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.primary-nav a').forEach(a => a.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + link.dataset.page).classList.add('active');
+  });
+});
+
+// ── Row selection ──
+document.querySelectorAll('.data-table tbody tr').forEach(row => {
+  row.addEventListener('click', () => {
+    row.closest('tbody').querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+    row.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>

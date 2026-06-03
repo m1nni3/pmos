@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { get } from '../api'
-import { C, fmt, FONT, R, T } from '../styles'
-import { Spinner, Empty, ErrorBanner, Card, Table, Btn, Select } from '../components/UI'
+import { C, fmt, FONT, R, T, SHADOW } from '../styles'
+import { Spinner, Empty, ErrorBanner, Table, Btn, Select } from '../components/UI'
+import { usePageTitle } from '../PageTitleContext'
 
 const REPORT_TYPES = [
   { key: 'portfolio', label: 'Portfolio Summary' },
@@ -11,6 +12,8 @@ const REPORT_TYPES = [
 ]
 
 export default function Reports() {
+  const { setPageTitle, setPageSubtitle } = usePageTitle()
+  useEffect(() => { setPageTitle('Reports'); setPageSubtitle('Generate portfolio reports') }, [])
   const [type, setType] = useState('portfolio')
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
@@ -46,19 +49,22 @@ export default function Reports() {
 
   return (
     <div style={{ padding: '1.5rem 2rem', maxWidth: 1200, fontFamily: FONT }}>
-      <h1 style={{ fontSize: 20, margin: '0 0 0.25rem', fontWeight: 700 }}>Reports</h1>
-      <p style={{ margin: '0 0 1.5rem', color: C.muted, fontSize: T.sm }}>Generate portfolio reports</p>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-        <Select label="Report Type" value={type} onChange={setType}>
-          {REPORT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
-        </Select>
-        <Select label="Property (optional)" value={propId} onChange={setPropId}>
-          <option value="">All properties</option>
-          {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Select>
-        <Btn onClick={runReport}>Run Report</Btn>
-        {data && data.length > 0 && <Btn variant="ghost" onClick={downloadCSV}>⬇ Download CSV</Btn>}
+      <div style={{
+        background: C.card, borderRadius: R.lg, border: `1px solid ${C.border}`,
+        padding: '1.25rem', marginBottom: '1.5rem', boxShadow: SHADOW.sm,
+      }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <Select label="Report Type" value={type} onChange={setType}>
+            {REPORT_TYPES.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </Select>
+          <Select label="Property (optional)" value={propId} onChange={setPropId}>
+            <option value="">All properties</option>
+            {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
+          <Btn onClick={runReport}>Run Report</Btn>
+          {data && data.length > 0 && <Btn variant="ghost" onClick={downloadCSV}>Download CSV</Btn>}
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -66,21 +72,21 @@ export default function Reports() {
       {loading && <Spinner />}
 
       {!loading && !data && !error && (
-        <Empty icon="📄" msg="Select a report type and click 'Run Report' to generate data." />
+        <Empty icon="?" msg="Select a report type and click 'Run Report' to generate data." />
       )}
 
       {!loading && data && data.length === 0 && (
-        <Empty icon="📋" msg="Report returned no data for the selected criteria." />
+        <Empty icon="?" msg="Report returned no data for the selected criteria." />
       )}
 
       {!loading && data && data.length > 0 && (
         <div style={{ animation: 'fadeIn 0.25s ease-out' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <p style={{ fontSize: T.sm, color: C.muted }}>{data.length} row{data.length !== 1 ? 's' : ''}</p>
           </div>
-          <Card>
+          <div style={{ border: `1px solid ${C.borderLight}`, borderRadius: R.lg, overflow: 'hidden' }}>
             <Table cols={cols} rows={data} striped hover />
-          </Card>
+          </div>
         </div>
       )}
     </div>

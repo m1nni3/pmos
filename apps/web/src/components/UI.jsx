@@ -1,29 +1,16 @@
 import { C, FONT, R, SHADOW, EASE, EASE_OUT, FOCUS, T, S } from '../styles'
 
-const btnBase = {
-  padding: '0.45rem 1rem',
-  borderRadius: R.md,
-  cursor: 'pointer',
-  fontSize: T.sm,
-  fontWeight: 600,
-  transition: `all ${EASE_OUT}`,
-  border: 'none',
-  lineHeight: 1.4,
-}
+const h = { height: 36, boxSizing: 'border-box' }
 
-const focusRing = {
-  '&:focus-visible': { outline: 'none', boxShadow: FOCUS },
-}
-
-export function Spinner({ size = 32 }) {
+export function Spinner({ size = 28 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem' }}>
       <div style={{
         width: size, height: size,
-        border: `3px solid ${C.border}`,
-        borderTop: `3px solid ${C.navy}`,
+        border: `2.5px solid ${C.border}`,
+        borderTopColor: C.primary,
         borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
+        animation: 'spin 0.7s linear infinite',
       }} />
     </div>
   )
@@ -33,7 +20,7 @@ export function Skeleton({ width = '100%', height = 16, style = {} }) {
   return (
     <div style={{
       width, height,
-      background: `linear-gradient(90deg, ${C.border} 25%, #f1f5f9 50%, ${C.border} 75%)`,
+      background: `linear-gradient(90deg, ${C.border} 25%, ${C.borderLight} 50%, ${C.border} 75%)`,
       backgroundSize: '200% 100%',
       borderRadius: R.sm,
       animation: 'pulse 1.5s ease-in-out infinite',
@@ -49,7 +36,12 @@ export function Empty({ msg = 'No data found.', icon, action }) {
       color: C.muted, fontSize: T.base,
       animation: 'fadeIn 0.3s ease-out',
     }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>{icon || '📋'}</div>
+      <div style={{
+        width: 48, height: 48, margin: '0 auto 12px',
+        borderRadius: R.lg, background: C.borderLight,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 20, color: C.muted,
+      }}>{icon || '—'}</div>
       <div style={{ maxWidth: 320, margin: '0 auto', lineHeight: 1.5 }}>{msg}</div>
       {action && <div style={{ marginTop: 16 }}>{action}</div>}
     </div>
@@ -60,30 +52,40 @@ export function ErrorBanner({ message, onRetry }) {
   if (!message) return null
   return (
     <div style={{
-      padding: '0.75rem 1rem', borderRadius: R.md, marginBottom: '1rem', fontSize: T.sm,
-      background: `${C.danger}10`, border: `1px solid ${C.danger}30`,
+      padding: '0.75rem 1rem', borderRadius: R.lg, marginBottom: '1rem', fontSize: T.sm,
+      background: C.dangerLight, border: `1px solid ${C.danger}`,
       color: C.danger, animation: 'slideDown 0.2s ease-out',
       display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between',
     }}>
-      <span>⚠ {message}</span>
+      <span>{message}</span>
       {onRetry && (
         <button onClick={onRetry} style={{
-          ...btnBase, background: 'transparent', color: C.danger,
-          border: `1px solid ${C.danger}40`, padding: '0.2rem 0.6rem', fontSize: T.xs,
+          padding: '0.2rem 0.6rem', borderRadius: R.md,
+          background: C.danger, color: C.white,
+          border: 'none', cursor: 'pointer', fontSize: T.xs, fontWeight: 600,
         }}>Retry</button>
       )}
     </div>
   )
 }
 
-export function Card({ children, style = {}, hover = false }) {
+export function Card({ children, style = {}, hover = false, header, onClick }) {
   return (
-    <div style={{
-      background: C.card, borderRadius: R.md, border: `1px solid ${C.border}`,
-      overflow: 'hidden', transition: `box-shadow ${EASE}`,
-      ...(hover ? { '&:hover': { boxShadow: SHADOW.md } } : {}),
+    <div onClick={onClick} style={{
+      background: C.card, borderRadius: R.lg, border: `1px solid ${C.border}`,
+      boxShadow: SHADOW.sm,
+      overflow: 'hidden',
+      transition: `box-shadow ${EASE}, transform ${EASE}`,
+      cursor: onClick ? 'pointer' : undefined,
+      ...(hover ? { ':hover': { boxShadow: SHADOW.md, transform: 'translateY(-1px)' } } : {}),
       ...style,
     }}>
+      {header && (
+        <div style={{
+          padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`,
+          fontWeight: 600, fontSize: T.sm, display: 'flex', alignItems: 'center', gap: 8,
+        }}>{header}</div>
+      )}
       {children}
     </div>
   )
@@ -91,25 +93,47 @@ export function Card({ children, style = {}, hover = false }) {
 
 export function StatCard({ label, value, sub, accent }) {
   return (
-    <div style={{ background: C.card, borderRadius: R.md, border: `1px solid ${C.border}`, padding: '1rem 1.25rem', transition: `box-shadow ${EASE}` }}>
-      <div style={{ fontSize: T.xs, color: C.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: '22px', fontWeight: 700, color: accent || C.text, fontFamily: FONT }}>{value}</div>
+    <div style={{
+      background: C.card, borderRadius: R.lg, border: `1px solid ${C.border}`,
+      padding: '1rem 1.25rem', position: 'relative', overflow: 'hidden',
+      transition: `box-shadow ${EASE}`,
+    }}>
+      {accent && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, width: 3, height: '100%',
+          background: accent, borderRadius: '0 2px 2px 0',
+        }} />
+      )}
+      <div style={{
+        fontSize: T.xs, color: C.muted, fontWeight: 600,
+        textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4,
+      }}>{label}</div>
+      <div style={{
+        fontSize: '1.375rem', fontWeight: 700, color: accent || C.text,
+        fontFamily: FONT, lineHeight: 1.2,
+      }}>{value}</div>
       {sub && <div style={{ fontSize: T.xs, color: C.muted, marginTop: 4 }}>{sub}</div>}
     </div>
   )
 }
 
-export function Input({ label, value, onChange, type = 'text', error, ...rest }) {
+export function Input({ label, value, onChange, type = 'text', error, placeholder, style: extStyle, ...rest }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: S.xs, ...extStyle }}>
       {label && <span style={{ fontSize: T.xs, color: C.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>}
-      <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)}
+      <input
+        type={type}
+        value={value ?? ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
         style={{
-          padding: '0.45rem 0.65rem', border: `1px solid ${error ? C.danger : C.border}`,
-          borderRadius: R.md, fontSize: T.sm, color: C.text, background: '#f8fafc',
+          ...h,
+          padding: '0 0.65rem', border: `1px solid ${error ? C.danger : C.border}`,
+          borderRadius: R.lg, fontSize: T.sm, color: C.text, background: C.card,
           outline: 'none', transition: `border-color ${EASE}, box-shadow ${EASE}`,
+          width: '100%',
         }}
-        onFocus={e => { e.currentTarget.style.boxShadow = FOCUS; e.currentTarget.style.borderColor = C.blue }}
+        onFocus={e => { e.currentTarget.style.boxShadow = FOCUS; e.currentTarget.style.borderColor = C.primary }}
         onBlur={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = error ? C.danger : C.border }}
         {...rest} />
       {error && <span style={{ fontSize: T.xs, color: C.danger }}>{error}</span>}
@@ -117,18 +141,20 @@ export function Input({ label, value, onChange, type = 'text', error, ...rest })
   )
 }
 
-export function Select({ label, value, onChange, children }) {
+export function Select({ label, value, onChange, children, style: extStyle }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: S.xs, ...extStyle }}>
       {label && <span style={{ fontSize: T.xs, color: C.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>}
       <select value={value} onChange={e => onChange(e.target.value)}
         style={{
-          padding: '0.45rem 0.65rem', border: `1px solid ${C.border}`,
-          borderRadius: R.md, fontSize: T.sm, color: C.text,
-          background: '#f8fafc', cursor: 'pointer',
+          ...h,
+          padding: '0 0.65rem', border: `1px solid ${C.border}`,
+          borderRadius: R.lg, fontSize: T.sm, color: C.text,
+          background: C.card, cursor: 'pointer',
           outline: 'none', transition: `border-color ${EASE}, box-shadow ${EASE}`,
+          minWidth: 140,
         }}
-        onFocus={e => { e.currentTarget.style.boxShadow = FOCUS; e.currentTarget.style.borderColor = C.blue }}
+        onFocus={e => { e.currentTarget.style.boxShadow = FOCUS; e.currentTarget.style.borderColor = C.primary }}
         onBlur={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = C.border }}>
         {children}
       </select>
@@ -136,45 +162,34 @@ export function Select({ label, value, onChange, children }) {
   )
 }
 
-export function Btn({ children, onClick, variant = 'primary', disabled, style = {}, size = 'md' }) {
+export function Btn({ children, onClick, variant = 'primary', disabled, style = {}, size = 'md', type }) {
   const sizes = {
-    sm: { padding: '0.25rem 0.6rem', fontSize: T.xs },
-    md: { padding: '0.45rem 1rem', fontSize: T.sm },
-    lg: { padding: '0.6rem 1.25rem', fontSize: T.base },
+    sm: { height: 30, padding: '0 0.6rem', fontSize: T.xs },
+    md: { height: 36, padding: '0 1rem', fontSize: T.sm },
+    lg: { height: 42, padding: '0 1.25rem', fontSize: T.base },
   }
-  const styles = {
-    primary: { background: C.navy, color: C.white, border: 'none', '&:hover': { background: C.navyL } },
-    secondary: { background: 'transparent', color: C.navy, border: `1px solid ${C.navy}`, '&:hover': { background: C.navy + '08' } },
-    danger: { background: C.danger, color: C.white, border: 'none', '&:hover': { background: '#b91c1c' } },
-    ghost: { background: '#f1f5f9', color: C.text, border: `1px solid ${C.border}`, '&:hover': { background: '#e2e8f0' } },
+  const s = sizes[size] || sizes.md
+  const variants = {
+    primary: { background: C.primary, color: C.primaryText, border: 'none', hoverBg: C.primaryHover },
+    secondary: { background: 'transparent', color: C.primary, border: `1px solid ${C.primary}`, hoverBg: C.primaryLight },
+    ghost: { background: 'transparent', color: C.textSecondary, border: `1px solid ${C.border}`, hoverBg: C.borderLight },
+    danger: { background: C.danger, color: C.white, border: 'none', hoverBg: '#b91c1c' },
   }
-  const s = styles[variant]
+  const v = variants[variant] || variants.primary
   return (
-    <button onClick={onClick} disabled={disabled}
-      onMouseEnter={e => {
-        if (!disabled) {
-          if (variant === 'primary') e.currentTarget.style.background = C.navyL
-          else if (variant === 'danger') e.currentTarget.style.background = '#b91c1c'
-          else if (variant === 'ghost') e.currentTarget.style.background = '#e2e8f0'
-          else if (variant === 'secondary') e.currentTarget.style.background = C.navy + '08'
-        }
-      }}
-      onMouseLeave={e => {
-        if (!disabled) {
-          if (variant === 'primary') e.currentTarget.style.background = C.navy
-          else if (variant === 'danger') e.currentTarget.style.background = C.danger
-          else if (variant === 'ghost') e.currentTarget.style.background = '#f1f5f9'
-          else if (variant === 'secondary') e.currentTarget.style.background = 'transparent'
-        }
-      }}
+    <button type={type} onClick={onClick} disabled={disabled}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = v.hoverBg }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = v.background }}
       style={{
-        ...btnBase,
-        ...sizes[size],
-        background: s.background,
-        color: s.color,
-        border: s.border,
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'default' : 'pointer',
+        ...s,
+        borderRadius: R.lg, cursor: disabled ? 'default' : 'pointer',
+        fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap',
+        transition: `all ${EASE}`,
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        opacity: disabled ? 0.45 : 1,
+        background: v.background,
+        color: v.color,
+        border: v.border,
         ...style,
       }}>
       {children}
@@ -182,21 +197,26 @@ export function Btn({ children, onClick, variant = 'primary', disabled, style = 
   )
 }
 
-export function Tabs({ tabs, active, setActive }) {
+export function Tabs({ tabs, active, setActive, style }) {
   return (
-    <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: '1rem', overflowX: 'auto' }}>
+    <div style={{
+      display: 'flex', gap: 4, marginBottom: '1rem',
+      background: C.borderLight, borderRadius: R.lg, padding: 3,
+      overflowX: 'auto', ...style,
+    }}>
       {tabs.map(t => (
         <button key={t.key || t} onClick={() => setActive(t.key || t)}
           style={{
-            padding: '0.6rem 1rem', border: 'none', background: 'transparent',
-            cursor: 'pointer', fontSize: T.sm,
-            fontWeight: active === (t.key || t) ? 700 : 500,
-            color: active === (t.key || t) ? C.navy : C.muted,
-            borderBottom: active === (t.key || t) ? `2px solid ${C.navy}` : '2px solid transparent',
-            marginBottom: -2, whiteSpace: 'nowrap',
-            transition: `color ${EASE}, border-color ${EASE}`,
-          }}
-          onFocus={e => { e.currentTarget.style.outline = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
+            padding: '0.35rem 0.85rem', border: 'none', cursor: 'pointer',
+            fontSize: T.sm,
+            fontWeight: active === (t.key || t) ? 600 : 500,
+            color: active === (t.key || t) ? C.text : C.muted,
+            background: active === (t.key || t) ? C.card : 'transparent',
+            borderRadius: R.md,
+            boxShadow: active === (t.key || t) ? SHADOW.sm : 'none',
+            whiteSpace: 'nowrap',
+            transition: `all ${EASE}`,
+          }}>
           {t.label || t}
         </button>
       ))}
@@ -210,15 +230,13 @@ export function Table({ cols, rows, keyFn, hover = true, striped = false }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: T.sm }}>
         <thead>
           <tr style={{
-            borderBottom: `2px solid ${C.border}`,
-            position: 'sticky', top: 0,
-            background: C.card, zIndex: 1,
+            borderBottom: `1.5px solid ${C.border}`,
           }}>
             {cols.map(c => (
               <th key={c.key || c.label} style={{
                 textAlign: 'left', padding: '0.5rem 0.75rem',
                 color: C.muted, fontWeight: 600, fontSize: T.xs,
-                textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap',
+                textTransform: 'uppercase', letterSpacing: '0.4px', whiteSpace: 'nowrap',
                 ...c.thStyle,
               }}>
                 {c.label}
@@ -229,14 +247,17 @@ export function Table({ cols, rows, keyFn, hover = true, striped = false }) {
         <tbody>
           {rows.map((row, i) => (
             <tr key={keyFn ? keyFn(row) : i} style={{
-              borderBottom: `1px solid ${C.border}`,
+              borderBottom: `1px solid ${C.borderLight}`,
               transition: `background ${EASE}`,
-              background: striped && i % 2 === 1 ? '#f8fafc' : 'transparent',
+              background: striped && i % 2 === 1 ? C.surface : 'transparent',
             }}
-              onMouseEnter={e => { if (hover) e.currentTarget.style.background = '#f1f5f9' }}
-              onMouseLeave={e => { e.currentTarget.style.background = striped && i % 2 === 1 ? '#f8fafc' : 'transparent' }}>
+              onMouseEnter={e => { if (hover) e.currentTarget.style.background = C.borderLight }}
+              onMouseLeave={e => { e.currentTarget.style.background = striped && i % 2 === 1 ? C.surface : 'transparent' }}>
               {cols.map(c => (
-                <td key={c.key || c.label} style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', ...c.tdStyle }}>
+                <td key={c.key || c.label} style={{
+                  padding: '0.5rem 0.75rem', whiteSpace: 'nowrap',
+                  color: C.text, ...c.tdStyle,
+                }}>
                   {c.render ? c.render(row) : row[c.key]}
                 </td>
               ))}
@@ -250,9 +271,12 @@ export function Table({ cols, rows, keyFn, hover = true, striped = false }) {
 
 export function StatRow({ items }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: '0.6rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, gap: S.sm }}>
       {items.map((item, i) => (
-        <div key={i} style={{ background: C.bg, borderRadius: R.sm, padding: '0.6rem 0.8rem', animation: `fadeIn 0.3s ease-out` }}>
+        <div key={i} style={{
+          background: C.borderLight, borderRadius: R.lg, padding: '0.6rem 0.8rem',
+          animation: `fadeIn 0.3s ease-out`,
+        }}>
           <div style={{ fontSize: T.xs, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', color: C.muted }}>{item.label}</div>
           <div style={{ fontSize: T.lg, fontWeight: 700, color: item.accent || C.text, marginTop: 2 }}>{item.value}</div>
         </div>

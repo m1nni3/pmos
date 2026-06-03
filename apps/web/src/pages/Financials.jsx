@@ -1,11 +1,15 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { get, put, post, del } from '../api'
-import { C, fmt, fmtM } from '../styles'
-import { Spinner, Empty, StatCard, Table, Btn, Select } from '../components/UI'
-import { Line, Bar, Doughnut } from 'react-chartjs-2'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler } from 'chart.js'
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
+import { C, fmt, R, T, SHADOW, EASE } from '../styles'
+import { Spinner, Empty, Table, Btn, Select } from '../components/UI'
+import SummaryMetrics from '../components/SummaryMetrics'
+import DetailPanel from '../components/DetailPanel'
+import { usePageTitle } from '../PageTitleContext'
+import { useAuth } from '../AuthContext'
+import { Bar, Doughnut } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
 
 const TABS = [
   { key: 'dashboard', label: 'Dashboard' },
@@ -21,7 +25,6 @@ const LEDGER_LABELS = { rental_ledger: 'Rental', levy_ledger: 'Levy', bank_ledge
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTH_LABELS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-// Budget data from user's spreadsheet (Option A: net per property per month)
 const NET_BUDGET = {
   oakdale: [-2949, -2949, -1696, -1696, -1696, -1696, -1696, -1696, -1696, -1696, -1696, -1696],
   malindi: [1760, 1993, 1993, 1993, 1993, 1993, 1993, 1993, 1993, 1993, 1993, 1993],
@@ -29,7 +32,6 @@ const NET_BUDGET = {
   indaba: [-142, -142, -142, 71, 71, 71, 71, 71, 71, 71, 71, 71],
 }
 
-// Per-category budget (Option B) from spreadsheet
 const CATEGORY_BUDGET = {
   oakdale: {
     income: [12200, 12200, 13700, 13700, 13700, 13700, 13700, 13700, 13700, 13700, 13700, 13700],
@@ -65,7 +67,6 @@ const CATEGORY_BUDGET = {
   },
 }
 
-// Per-category actuals from spreadsheet (only months with data)
 const CATEGORY_ACTUAL = {
   oakdale: [
     { income: 12206, levy: 2584, bond: 9652, agent: 1443, municipal: 863, maintenance: 0 },
@@ -101,32 +102,85 @@ const ACTUAL_NETT = {
 }
 
 const CATEGORY_NAMES = [
-  { key: 'income', label: 'Rental Income', color: '#1a2744' },
-  { key: 'levy', label: 'Levy', color: '#243356' },
-  { key: 'bond', label: 'Bond Payment', color: '#d97706' },
-  { key: 'agent', label: 'Letting Agent', color: '#64748b' },
-  { key: 'municipal', label: 'Municipal', color: '#e91e8c' },
-  { key: 'maintenance', label: 'Maintenance', color: '#dc2626' },
+  { key: 'income', label: 'Rental Income', color: C.primary },
+  { key: 'levy', label: 'Levy', color: C.navy },
+  { key: 'bond', label: 'Bond Payment', color: C.warn },
+  { key: 'agent', label: 'Letting Agent', color: C.muted },
+  { key: 'municipal', label: 'Municipal', color: C.pink },
+  { key: 'maintenance', label: 'Maintenance', color: C.danger },
 ]
 
 function getBudgetKey(name) {
   return name?.toLowerCase().split(' ')[0] || ''
 }
 
-export default function Financials() {
+function fmtLocal(n) {
+  if (n == null) return '\u2014'
+  const v = Math.round(Number(n))
+  if (v >= 1000) return `R${v.toLocaleString()}`
+  return `R${v}`
+}
+
+const RECON_TABS = [
+  { id: 'levy', label: 'Levy Verification' },
+  { id: 'rental', label: 'Rental Verification' },
+  { id: 'municipal', label: 'Municipal Verification' },
+]
+
+const LEVY_COLUMNS = [
+  { key: 'period', label: 'Period' },
+  { key: 'rental_amount', label: 'Agent Claims Paid' },
+  { key: 'bank_amount', label: 'Body Corp Received' },
+  { key: 'variance', label: 'Variance' },
+  { key: 'status', label: 'Status' },
+]
+
+const RENTAL_COLUMNS = [
+  { key: 'unit_number', label: 'Unit' },
+  { key: 'tenant_name', label: 'Tenant' },
+  { key: 'rent_due', label: 'Rent Due' },
+  { key: 'rent_collected', label: 'Rent Collected' },
+  { key: 'deposit', label: 'Deposit' },
+  { key: 'status', label: 'Status' },
+]
+
+const MUNICIPAL_COLUMNS = [
+  { key: 'period', label: 'Period' },
+  { key: 'municipal_charged', label: 'Municipal Charged' },
+  { key: 'agent_collected', label: 'Agent Collected' },
+  { key: 'paid_to_municipal', label: 'Paid to Municipal' },
+  { key: 'variance', label: 'Variance' },
+  { key: 'status', label: 'Status' },
+]
+
+const SEED_RENTAL = [
+  { id: 'r1', unit_number: '101', tenant_name: 'J. Smith', rent_due: 12000, rent_collected: 12000, deposit: 24000, status: 'matched' },
+  { id: 'r2', unit_number: '102', tenant_name: 'P. Adams', rent_due: 9500, rent_collected: 9500, deposit: 19000, status: 'verified' },
+  { id: 'r3', unit_number: '103', tenant_name: 'L. Nkosi', rent_due: 11000, rent_collected: 10000, deposit: 22000, status: 'exception' },
+  { id: 'r4', unit_number: '104', tenant_name: 'T. Botha', rent_due: 8500, rent_collected: 8500, deposit: 17000, status: 'matched' },
+  { id: 'r5', unit_number: '105', tenant_name: 'M. Dlamini', rent_due: 13000, rent_collected: 0, deposit: 26000, status: 'pending' },
+  { id: 'r6', unit_number: '106', tenant_name: 'K. George', rent_due: 10000, rent_collected: 10000, deposit: 20000, status: 'verified' },
+]
+
+const SEED_MUNICIPAL = [
+  { id: 'm1', period: 'Mar 2026', municipal_charged: 94200, agent_collected: 94200, paid_to_municipal: 90000, variance: -4200, status: 'exception' },
+  { id: 'm2', period: 'Feb 2026', municipal_charged: 91800, agent_collected: 91800, paid_to_municipal: 91800, variance: 0, status: 'verified' },
+  { id: 'm3', period: 'Jan 2026', municipal_charged: 95100, agent_collected: 95100, paid_to_municipal: 95100, variance: 0, status: 'verified' },
+]
+
+const chartBox = { background: C.card, border: `1px solid ${C.border}`, borderRadius: R.lg, padding: '1rem' }
+const chartTitle = { fontWeight: 600, fontSize: T.sm, marginBottom: 10, color: C.text }
+
+export default function Financials({ finTab: activeTab, setFinTab }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const subPath = location.pathname.replace(/^\/financials\/?/, '').split('?')[0] || 'dashboard'
-  const activeTab = TABS.find(t => t.key === subPath) ? subPath : 'dashboard'
-  const searchParams = new URLSearchParams(location.search)
+  const { setPageTitle, setPageSubtitle } = usePageTitle()
+  const { isAdmin } = useAuth()
 
   const setTab = (key) => {
+    setFinTab(key)
     if (key === 'dashboard') return navigate('/financials')
-    const params = new URLSearchParams()
-    if (key === 'ledgers' && ledgerTab !== 'rental_ledger') params.set('tab', ledgerTab)
-    if (key === 'ledgers' && ledgerProp) params.set('property_id', ledgerProp)
-    const qs = params.toString()
-    navigate(`/financials/${key}${qs ? '?' + qs : ''}`)
+    navigate(`/financials/${key}`)
   }
 
   const [dash, setDash] = useState(null)
@@ -135,10 +189,11 @@ export default function Financials() {
   const [allReconciliations, setAllReconciliations] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Ledger state
-  const [ledgerTab, setLedgerTab] = useState(searchParams.get('tab') || 'rental_ledger')
-  const [ledgerProp, setLedgerProp] = useState(searchParams.get('property_id') || '')
+  const [ledgerTab, setLedgerTab] = useState('rental_ledger')
+  const [ledgerProp, setLedgerProp] = useState('')
   const [ledgerEntries, setLedgerEntries] = useState([])
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const fileRef = useRef(null)
   const [importResult, setImportResult] = useState(null)
   const [importing, setImporting] = useState(false)
@@ -147,17 +202,13 @@ export default function Financials() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('')
   const [pendingDeleteIds, setPendingDeleteIds] = useState(null)
 
-  // Maintenance state
   const [workOrders, setWorkOrders] = useState([])
   const [woFilter, setWoFilter] = useState('all')
   const [woProp, setWoProp] = useState('')
 
-  // Reconciliation state
-  const [reconciliations, setReconciliations] = useState([])
-  const [recFilter, setRecFilter] = useState('all')
-  const [recProp, setRecProp] = useState('')
+  const [recTab, setRecTab] = useState('levy')
+  const [recSelected, setRecSelected] = useState(null)
 
-  // P&L state
   const [pnlProperty, setPnlProperty] = useState('')
   const [pnlMonth, setPnlMonth] = useState(4)
 
@@ -177,7 +228,6 @@ export default function Financials() {
         const firstId = p[0].id
         if (!ledgerProp) setLedgerProp(firstId)
         if (!woProp) setWoProp(firstId)
-        if (!recProp) setRecProp(firstId)
         if (!pnlProperty) setPnlProperty(p[0].name)
       }
     })
@@ -186,11 +236,14 @@ export default function Financials() {
   useEffect(() => {
     const pid = ledgerTab === 'bank_ledger' ? 'all' : ledgerProp
     if (pid) {
-      get(`/ledger/${ledgerTab}?property_id=${pid}`).then(setLedgerEntries).catch(() => setLedgerEntries([]))
+      const params = new URLSearchParams({ property_id: pid })
+      if (dateFrom) params.set('from', dateFrom)
+      if (dateTo) params.set('to', dateTo)
+      get(`/ledger/${ledgerTab}?${params.toString()}`).then(setLedgerEntries).catch(() => setLedgerEntries([]))
     } else {
       setLedgerEntries([])
     }
-  }, [ledgerTab, ledgerProp])
+  }, [ledgerTab, ledgerProp, dateFrom, dateTo])
 
   useEffect(() => {
     if (woProp) {
@@ -203,25 +256,9 @@ export default function Financials() {
     }
   }, [woFilter, woProp])
 
-  useEffect(() => {
-    if (recProp) {
-      const params = new URLSearchParams()
-      if (recProp) params.set('property_id', recProp)
-      if (recFilter && recFilter !== 'all') params.set('status', recFilter)
-      get(`/reconciliation?${params.toString()}`).then(setReconciliations).catch(() => setReconciliations([]))
-    } else {
-      setReconciliations([])
-    }
-  }, [recFilter, recProp])
-
   const handleWOStatus = async (id, status) => {
     const updated = await put(`/work-orders/${id}`, { status }).catch(() => null)
     if (updated) setWorkOrders(workOrders.map(w => w.id === id ? updated : w))
-  }
-
-  const handleRecUpdate = async (id, data) => {
-    const updated = await put(`/reconciliation/${id}`, data).catch(() => null)
-    if (updated) setReconciliations(reconciliations.map(r => r.id === id ? updated : r))
   }
 
   const toggleSelect = (id) => setSelected(prev => ({ ...prev, [id]: !prev[id] }))
@@ -323,20 +360,6 @@ export default function Financials() {
   const matched = allReconciliations.filter(r => r.status === 'matched').length
   const totalWoCost = allWorkOrders.reduce((s, w) => s + (w.cost || 0), 0)
 
-  // ── Chart data ──
-  const cashFlowData = {
-    labels: MONTHS,
-    datasets: [{
-      label: 'Net Cash Flow',
-      data: [42000, 38500, 41000, 39800, 37500, 42300, 36100, 44700, 41200, 38900, 43500, 40200],
-      borderColor: C.green,
-      backgroundColor: C.green + '20',
-      fill: true,
-      tension: 0.35,
-      pointRadius: 3,
-    }]
-  }
-
   const budgetProps = properties.filter(p => NET_BUDGET[getBudgetKey(p.name)])
   const currentMonth = new Date().getMonth()
   const budgetBarData = {
@@ -345,13 +368,13 @@ export default function Financials() {
       {
         label: 'Budget',
         data: budgetProps.map(p => NET_BUDGET[getBudgetKey(p.name)]?.[currentMonth] || 0),
-        backgroundColor: C.navy + '60',
+        backgroundColor: C.primary + '60',
         borderRadius: 4,
       },
       {
         label: 'Actual',
         data: budgetProps.map(p => ACTUAL_NETT[getBudgetKey(p.name)]?.[currentMonth] || 0),
-        backgroundColor: C.navy,
+        backgroundColor: C.primary,
         borderRadius: 4,
       },
     ]
@@ -367,9 +390,9 @@ export default function Financials() {
     labels: [...woChartProps.map(([id]) => properties.find(p => p.id === id)?.name || id.slice(0, 8)), ...(woOther > 0 ? ['Others'] : [])],
     datasets: [{
       data: [...woChartProps.map(([,v]) => v), ...(woOther > 0 ? [woOther] : [])],
-      backgroundColor: [C.navy, C.navyL, C.green, C.gold, C.pink, '#93a3b8'],
+      backgroundColor: [C.primary, C.navy, C.green, C.warn, C.pink, '#94a3b8'],
       borderWidth: 2,
-      borderColor: C.bg,
+      borderColor: C.card,
     }]
   }
 
@@ -381,7 +404,7 @@ export default function Financials() {
       data: [statusCounts.matched, statusCounts.exception, statusCounts.pending, statusCounts.unmatched],
       backgroundColor: [C.success, C.danger, C.warn, C.muted],
       borderWidth: 2,
-      borderColor: C.bg,
+      borderColor: C.card,
     }]
   }
 
@@ -415,141 +438,63 @@ export default function Financials() {
     },
     scales: {
       x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: '#e2e8f0' }, ticks: { font: { size: 10 } } },
+      y: { grid: { color: C.borderLight }, ticks: { font: { size: 10 } } },
     },
   })
 
   if (loading) return <Spinner />
 
-  // ═══════════════════════════════════════
-  // SUB-VIEW RENDERERS
-  // ═══════════════════════════════════════
-
   const renderDashboard = () => (
     <div>
-      {/* KPI cards */}
-      {dash && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <StatCard label="Portfolio Value" value={fmtM(dash.totalPortfolioValue || 0)} accent={C.green} />
-          <StatCard label="Total Purchase" value={fmtM(dash.totalPurchaseValue || 0)} />
-          <StatCard label="Bond Exposure" value={fmtM(dash.totalBondExposure || 0)} accent={C.warn} />
-          <StatCard label="Monthly Bond" value={fmt(dash.monthlyBondPayments || 0)} />
-          <StatCard label="Net Yield" value={`${dash.netYield || '0.0'}%`} accent={C.green} />
-          <StatCard label="Properties" value={dash.propertiesOwned || 0} />
-        </div>
-      )}
-
-      {/* Operational metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Open Work Orders</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: openWO > 0 ? C.warn : C.success }}>{openWO}</div>
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Recon Exceptions</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: exceptions > 0 ? C.danger : C.success }}>{exceptions}</div>
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Periods Reconciled</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: C.success }}>{matched}</div>
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Total Maintenance Cost</div>
-          <div style={{ fontSize: 24, fontWeight: 700 }}>{fmt(totalWoCost)}</div>
-        </div>
-      </div>
-
-      {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Cash Flow (12-month)</div>
-          {cashFlowData.datasets[0].data.some(v => v !== 0) ? <Line data={cashFlowData} options={chartOpts()} /> : <Empty msg="No cash flow data" />}
-        </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Budget vs Actual (MTD)</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div style={chartBox}>
+          <div style={chartTitle}>Budget vs Actual (MTD)</div>
           {budgetProps.length > 0 ? <Bar data={budgetBarData} options={chartOpts()} /> : <Empty msg="No budget data" />}
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Maintenance by Property</div>
+        <div style={chartBox}>
+          <div style={chartTitle}>Maintenance by Property</div>
           {woChartProps.length > 0 ? <Doughnut data={maintData} options={{ ...chartOpts(), cutout: '60%' }} /> : <Empty msg="No maintenance data" />}
         </div>
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1rem' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Reconciliation Status</div>
+        <div style={chartBox}>
+          <div style={chartTitle}>Reconciliation Status</div>
           {allReconciliations.length > 0 ? <Doughnut data={reconData} options={{ ...chartOpts(), cutout: '60%' }} /> : <Empty msg="No reconciliation data" />}
         </div>
       </div>
 
-      {/* Option A: Net budget table */}
       {budgetProps.length > 0 && (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: '1.5rem' }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📊 Net Budget vs Actual (MTD)
-            <span style={{ fontSize: 10, color: C.muted, background: C.bg, padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 600, textTransform: 'uppercase' }}>net-only</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ ...chartBox }}>
+            <div style={{ padding: '0 0 0.75rem', borderBottom: `1px solid ${C.borderLight}`, fontWeight: 600, fontSize: T.sm, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Net Budget vs Actual (MTD)
+              <span style={{ fontSize: 10, color: C.muted, background: C.borderLight, padding: '0.1rem 0.4rem', borderRadius: R.sm, fontWeight: 600, textTransform: 'uppercase' }}>net-only</span>
+            </div>
+            <div style={{ paddingTop: '0.5rem' }}>
+              <Table cols={[
+                { key: 'name', label: 'Property' },
+                { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text }}>{fmt(NET_BUDGET[getBudgetKey(r.name)]?.[currentMonth] || 0)}</span> },
+                { key: 'actual', label: 'Actual', render: r => {
+                  const a = ACTUAL_NETT[getBudgetKey(r.name)]?.[currentMonth]
+                  return a !== undefined ? <span style={{ color: C.textSecondary }}>{fmt(a)}</span> : <span style={{ color: C.muted }}>—</span>
+                }},
+                { key: 'variance', label: 'Variance', render: r => {
+                  const b = NET_BUDGET[getBudgetKey(r.name)]?.[currentMonth]
+                  const a = ACTUAL_NETT[getBudgetKey(r.name)]?.[currentMonth]
+                  if (b === undefined || a === undefined) return <span style={{ color: C.muted }}>—</span>
+                  const v = a - b
+                  return <span style={{ color: v >= 0 ? C.success : C.danger, fontWeight: 600 }}>{v >= 0 ? '+' : ''}{fmt(v)}</span>
+                }},
+              ]} rows={budgetProps} keyFn={r => r.id} />
+            </div>
           </div>
-          <div style={{ padding: '0.5rem 0.75rem' }}>
-            <Table cols={[
-              { key: 'name', label: 'Property' },
-              { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text }}>{fmt(NET_BUDGET[getBudgetKey(r.name)]?.[currentMonth] || 0)}</span> },
-              { key: 'actual', label: 'Actual', render: r => {
-                const a = ACTUAL_NETT[getBudgetKey(r.name)]?.[currentMonth]
-                return a !== undefined ? <span style={{ color: C.muted }}>{fmt(a)}</span> : <span style={{ color: C.muted }}>—</span>
-              }},
-              { key: 'variance', label: 'Variance', render: r => {
-                const b = NET_BUDGET[getBudgetKey(r.name)]?.[currentMonth]
-                const a = ACTUAL_NETT[getBudgetKey(r.name)]?.[currentMonth]
-                if (b === undefined || a === undefined) return <span style={{ color: C.muted }}>—</span>
-                const v = a - b
-                return <span style={{ color: v >= 0 ? C.success : C.danger, fontWeight: 600 }}>{v >= 0 ? '+' : ''}{fmt(v)}</span>
-              }},
-            ]} rows={budgetProps} keyFn={r => r.id} />
+          <div style={{ ...chartBox }}>
+            <div style={{ padding: '0 0 0.75rem', borderBottom: `1px solid ${C.borderLight}`, fontWeight: 600, fontSize: T.sm }}>YTD Variance by Property</div>
+            <div style={{ paddingTop: '1rem' }}>
+              <Bar data={ytdVarianceData} options={chartOpts()} />
+            </div>
           </div>
         </div>
       )}
 
-      {/* YTD Variance chart */}
-      {budgetProps.length > 0 && (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: '1.5rem' }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 14 }}>YTD Variance by Property</div>
-          <div style={{ padding: '1rem' }}>
-            <Bar data={ytdVarianceData} options={chartOpts()} />
-          </div>
-        </div>
-      )}
-
-      {/* Per-Property table */}
-      <h2 style={{ fontSize: 16, margin: '0 0 0.75rem' }}>Per-Property Overview</h2>
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: '1.5rem' }}>
-        <div style={{ padding: '0.5rem 0.75rem' }}>
-          <Table cols={[
-            { key: 'name', label: 'Property' },
-            { key: 'value', label: 'Market Value', render: r => { const v = r.current_market_value; return v ? fmtM(v) : <span style={{ color: C.muted }}>—</span> } },
-            { key: 'purchase', label: 'Purchase', render: r => { const v = r.purchase_price; return v ? fmtM(v) : <span style={{ color: C.muted }}>—</span> } },
-            { key: 'wo', label: 'Open Orders', render: r => { const c = allWorkOrders.filter(w => w.property_id === r.id && (w.status === 'open' || w.status === 'in_progress')).length; return <span style={{ color: c > 0 ? C.warn : C.muted }}>{c}</span> } },
-            { key: 'recon', label: 'Recon Flags', render: r => { const c = allReconciliations.filter(rec => rec.property_id === r.id && rec.status === 'exception').length; return <span style={{ color: c > 0 ? C.danger : C.muted }}>{c}</span> } },
-          ]} rows={properties} keyFn={r => r.id} />
-        </div>
-      </div>
-
-      {/* Section cards */}
-      <h2 style={{ fontSize: 16, margin: '1.5rem 0 0.75rem' }}>Detailed Views</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-        <div onClick={() => navigate('/financials/ledgers')}
-          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1.25rem', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.blue; e.currentTarget.style.boxShadow = `0 0 0 2px ${C.blue}20` }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>📒</div>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Ledgers</div>
-          <div style={{ fontSize: 12, color: C.muted }}>View rental, levy, bank & municipality transactions per property</div>
-        </div>
-        <div onClick={() => navigate('/financials/maintenance')}
-          style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '1.25rem', cursor: 'pointer', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.blue; e.currentTarget.style.boxShadow = `0 0 0 2px ${C.blue}20` }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.boxShadow = 'none' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>🔧</div>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Maintenance</div>
-          <div style={{ fontSize: 12, color: C.muted }}>Track work orders, status updates & maintenance costs</div>
-        </div>
-      </div>
     </div>
   )
 
@@ -564,74 +509,94 @@ export default function Financials() {
             {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </Select>
         )}
+        {/* Date range filters */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <label style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>From</label>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            style={{ height: 32, padding: '0 8px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, color: '#111827', outline: 'none', cursor: 'pointer' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <label style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>To</label>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            style={{ height: 32, padding: '0 8px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, color: '#111827', outline: 'none', cursor: 'pointer' }} />
+        </div>
+        {(dateFrom || dateTo) && (
+          <button onClick={() => { setDateFrom(''); setDateTo('') }}
+            style={{ height: 32, padding: '0 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', fontSize: 12, color: '#6b7280', cursor: 'pointer', alignSelf: 'flex-end' }}>
+            Clear
+          </button>
+        )}
         {ledgerTab === 'bank_ledger' && (
-          <div style={{ fontSize: 12, color: C.muted, padding: '0.5rem 0' }}>Bank ledger is shared across all properties</div>
+          <div style={{ fontSize: T.xs, color: C.muted, padding: '0.5rem 0' }}>Bank ledger is shared across all properties</div>
         )}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <Btn onClick={() => fileRef.current?.click()} style={{ background: C.green, color: '#fff', fontSize: 12 }}>📄 Import CSV</Btn>
-        <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVImport} style={{ display: 'none' }} />
-        {ledgerEntries.length > 0 && editing && (
-          <Btn onClick={handleClearLedger} style={{ background: C.danger, color: '#fff', fontSize: 12 }}>🗑 Clear Ledger</Btn>
-        )}
-        {ledgerEntries.length > 0 && (
-          <Btn onClick={() => editing ? handleCancelEdit() : setEditing(true)} style={{ background: C.navyL, color: '#fff', fontSize: 12 }}>
-            {editing ? 'Done' : 'Edit'}
-          </Btn>
+        {isAdmin && (
+          <>
+            <Btn onClick={() => fileRef.current?.click()} variant="secondary" size="sm">Import CSV</Btn>
+            <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVImport} style={{ display: 'none' }} />
+            {ledgerEntries.length > 0 && editing && (
+              <Btn onClick={handleClearLedger} variant="danger" size="sm">Clear Ledger</Btn>
+            )}
+            {ledgerEntries.length > 0 && (
+              <Btn onClick={() => editing ? handleCancelEdit() : setEditing(true)} variant="secondary" size="sm">
+                {editing ? 'Done' : 'Edit'}
+              </Btn>
+            )}
+          </>
         )}
       </div>
 
-      {editing && (
+      {isAdmin && editing && (
         <div style={{ display: 'flex', gap: 8, marginBottom: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Btn onClick={selectAll} style={{ background: 'transparent', color: C.text, border: `1px solid ${C.border}`, fontSize: 11, padding: '0.25rem 0.6rem' }}>
+          <Btn onClick={selectAll} variant="ghost" size="sm">
             {ledgerEntries.every(e => selected[e.id]) ? 'Deselect All' : 'Select All'}
           </Btn>
-          <Btn onClick={handleDeleteSelected}
-            style={{ background: C.danger, color: '#fff', fontSize: 11, padding: '0.25rem 0.6rem', opacity: ledgerEntries.some(e => selected[e.id]) ? 1 : 0.4 }}
+          <Btn onClick={handleDeleteSelected} variant="danger" size="sm"
             disabled={!ledgerEntries.some(e => selected[e.id])}>
             Delete Selected ({ledgerEntries.filter(e => selected[e.id]).length})
           </Btn>
         </div>
       )}
 
-      {pendingDeleteIds && (
-        <div style={{ padding: '0.75rem 1rem', borderRadius: 6, marginBottom: '0.75rem', fontSize: 13, background: `${C.danger}15`, border: `1px solid ${C.danger}40` }}>
+      {isAdmin && pendingDeleteIds && (
+        <div style={{ padding: '0.75rem 1rem', borderRadius: R.lg, marginBottom: '0.75rem', fontSize: T.sm, background: C.dangerLight, border: `1px solid ${C.danger}` }}>
           <div style={{ fontWeight: 600, marginBottom: 6, color: C.danger }}>Confirm delete {pendingDeleteIds.length} transactions</div>
-          <div style={{ marginBottom: 6, color: C.muted }}>Type <strong>delete</strong> below:</div>
+          <div style={{ marginBottom: 6, color: C.textSecondary }}>Type <strong>delete</strong> below:</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <input value={deleteConfirmInput} onChange={e => setDeleteConfirmInput(e.target.value)}
-              style={{ padding: '0.35rem 0.6rem', border: `1px solid ${deleteConfirmInput.toLowerCase() === 'delete' ? C.success : C.border}`, borderRadius: 4, fontSize: 13, outline: 'none', width: 120 }} placeholder="type delete" />
-            <Btn onClick={confirmBulkDelete}
-              style={{ background: deleteConfirmInput.toLowerCase() === 'delete' ? C.danger : C.border, color: '#fff', fontSize: 12, padding: '0.35rem 0.75rem', opacity: deleteConfirmInput.toLowerCase() === 'delete' ? 1 : 0.5 }}
+              style={{ height: 32, padding: '0 0.6rem', border: `1px solid ${deleteConfirmInput.toLowerCase() === 'delete' ? C.success : C.border}`, borderRadius: R.md, fontSize: T.sm, outline: 'none', width: 120 }}
+              placeholder="type delete" />
+            <Btn onClick={confirmBulkDelete} variant="danger" size="sm"
               disabled={deleteConfirmInput.toLowerCase() !== 'delete'}>Confirm</Btn>
-            <Btn onClick={() => { setPendingDeleteIds(null); setDeleteConfirmInput('') }}
-              style={{ background: 'transparent', color: C.muted, border: `1px solid ${C.border}`, fontSize: 12, padding: '0.35rem 0.75rem' }}>Cancel</Btn>
+            <Btn onClick={() => { setPendingDeleteIds(null); setDeleteConfirmInput('') }} variant="ghost" size="sm">Cancel</Btn>
           </div>
         </div>
       )}
 
       {importResult && (
-        <div style={{ padding: '0.5rem 0.75rem', borderRadius: 6, marginBottom: '0.75rem', fontSize: 13,
-          background: importResult.error ? `${C.danger}15` : `${C.success}15`, color: importResult.error ? C.danger : C.success,
+        <div style={{ padding: '0.5rem 0.75rem', borderRadius: R.md, marginBottom: '0.75rem', fontSize: T.sm,
+          background: importResult.error ? C.dangerLight : C.greenLight,
+          color: importResult.error ? C.danger : C.success,
           border: `1px solid ${importResult.error ? C.danger : C.success}30` }}>
           {importResult.error ? `Import error: ${importResult.error}` : `Imported ${importResult.inserted} entries (${importResult.skipped} skipped)`}
         </div>
       )}
 
-      {importing && <div style={{ fontSize: 13, color: C.muted, marginBottom: '0.75rem' }}>Importing...</div>}
+      {importing && <div style={{ fontSize: T.sm, color: C.muted, marginBottom: '0.75rem' }}>Importing...</div>}
 
       {ledgerEntries.length === 0 && !importing && <Empty msg="No ledger entries found. Import a CSV to add transactions." />}
       {ledgerEntries.length > 0 && (
         <div>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: 13 }}>
-            <span>Entries: <strong>{ledgerEntries.length}</strong></span>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', fontSize: T.sm, color: C.textSecondary }}>
+            <span>Entries: <strong style={{ color: C.text }}>{ledgerEntries.length}</strong></span>
             <span>Total Debit: <strong style={{ color: C.danger }}>{fmt(totalDebit)}</strong></span>
             <span>Total Credit: <strong style={{ color: C.success }}>{fmt(totalCredit)}</strong></span>
           </div>
-          <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 500, overflowY: 'auto', border: `1px solid ${C.borderLight}`, borderRadius: R.lg }}>
             <Table cols={[
-              ...(editing ? [{ key: 'select', label: (
+              ...(isAdmin && editing ? [{ key: 'select', label: (
                 <input type="checkbox" checked={ledgerEntries.length > 0 && ledgerEntries.every(e => selected[e.id])} onChange={selectAll} style={{ cursor: 'pointer', margin: 0 }} />
               ), render: r => (
                 <input type="checkbox" checked={!!selected[r.id]} onChange={() => toggleSelect(r.id)} style={{ cursor: 'pointer', margin: 0 }} />
@@ -667,112 +632,110 @@ export default function Financials() {
       totalBudgetNett -= b
       totalActualNett -= a ?? b
     })
-    // Actually nett = income - expenses, but in the spreadsheet the budget line has specific values
-    // Let me just use the pre-computed NET_BUDGET for the nett display
     const netBudget = NET_BUDGET[key]?.[pnlMonth] || 0
     const netActual = ACTUAL_NETT[key]?.[pnlMonth]
     const netVariance = netActual !== undefined ? netActual - netBudget : null
 
     return (
       <div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: '0.6rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <Select label="Property" value={propName} onChange={setPnlProperty}>
             {properties.filter(p => CATEGORY_BUDGET[getBudgetKey(p.name)]).map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
           </Select>
           <Select label="Month" value={String(pnlMonth)} onChange={v => setPnlMonth(Number(v))}>
             {MONTH_LABELS.map((l, i) => <option key={i} value={i}>{l}</option>)}
           </Select>
-          <span style={{ fontSize: 10, color: C.muted, background: C.bg, padding: '0.15rem 0.45rem', borderRadius: 4, fontWeight: 600, textTransform: 'uppercase', marginLeft: 'auto' }}>per-category</span>
+          <span style={{ fontSize: 9, color: C.muted, background: C.borderLight, padding: '0.1rem 0.35rem', borderRadius: R.sm, fontWeight: 600, textTransform: 'uppercase', marginLeft: 'auto' }}>per-category</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.6rem', marginBottom: '1rem' }}>
-          <div style={{ background: C.bg, borderRadius: 6, padding: '0.6rem 0.8rem' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', color: C.muted }}>Budgeted Nett</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{fmt(netBudget)}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '0.6rem' }}>
+          <div style={{ background: C.borderLight, borderRadius: R.md, padding: '0.3rem 0.6rem' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: C.muted }}>Budgeted Nett</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{fmt(netBudget)}</div>
           </div>
-          <div style={{ background: C.bg, borderRadius: 6, padding: '0.6rem 0.8rem' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', color: C.muted }}>Actual Nett</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: netActual !== undefined ? (netActual >= 0 ? C.success : C.danger) : C.muted }}>
+          <div style={{ background: C.borderLight, borderRadius: R.md, padding: '0.3rem 0.6rem' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: C.muted }}>Actual Nett</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: netActual !== undefined ? (netActual >= 0 ? C.success : C.danger) : C.muted }}>
               {netActual !== undefined ? fmt(netActual) : '—'}
             </div>
           </div>
-          <div style={{ background: C.bg, borderRadius: 6, padding: '0.6rem 0.8rem' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', color: C.muted }}>Variance</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: netVariance !== null ? (netVariance >= 0 ? C.success : C.danger) : C.muted }}>
+          <div style={{ background: C.borderLight, borderRadius: R.md, padding: '0.3rem 0.6rem' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: C.muted }}>Variance</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: netVariance !== null ? (netVariance >= 0 ? C.success : C.danger) : C.muted }}>
               {netVariance !== null ? `${netVariance >= 0 ? '+' : ''}${fmt(netVariance)}` : '—'}
             </div>
           </div>
-          <div style={{ background: C.bg, borderRadius: 6, padding: '0.6rem 0.8rem' }}>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', color: C.muted }}>YTD Variance</div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{
-              (() => {
+          <div style={{ background: C.borderLight, borderRadius: R.md, padding: '0.3rem 0.6rem' }}>
+            <div style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: C.muted }}>YTD Variance</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>
+              {(() => {
                 const actuals = ACTUAL_NETT[key] || []
                 const budgets = NET_BUDGET[key] || []
                 const ytd = actuals.reduce((sum, a, i) => sum + (a - (budgets[i] || 0)), 0)
                 return <span style={{ color: ytd >= 0 ? C.success : C.danger }}>{ytd >= 0 ? '+' : ''}{fmt(ytd)}</span>
-              })()
-            }</div>
+              })()}
+            </div>
           </div>
         </div>
 
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: '1rem' }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 14 }}>Income & Expenses — {MONTH_LABELS[pnlMonth]} 2026</div>
-          <div style={{ padding: '0.5rem 0.75rem' }}>
-            <Table cols={[
-              { key: 'category', label: 'Category' },
-              { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text }}>{fmt(budgetValues[r.key]?.budget || 0)}</span> },
-              { key: 'actual', label: 'Actual', render: r => {
-                const a = budgetValues[r.key]?.actual
-                return a !== undefined ? <span style={{ color: C.muted }}>{fmt(a)}</span> : <span style={{ color: C.muted }}>—</span>
-              }},
-              { key: 'variance', label: 'Variance', render: r => {
-                const b = budgetValues[r.key]?.budget || 0
-                const a = budgetValues[r.key]?.actual
-                if (a === undefined) return <span style={{ color: C.muted }}>—</span>
-                const v = b - a // positive = under budget (good for expenses)
-                // For income categories (income, levy): positive variance = good
-                // For expense categories (bond, agent, municipal, maintenance): negative = spent more
-                const isExpense = ['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
-                const showGood = isExpense ? v >= 0 : v <= 0
-                const displayV = isExpense ? v : -v
-                return <span style={{ color: showGood ? C.success : C.danger, fontWeight: 600 }}>{displayV >= 0 ? '+' : ''}{fmt(displayV)}</span>
-              }},
-              { key: 'bar', label: '', render: r => {
-                const b = budgetValues[r.key]?.budget || 1
-                const a = budgetValues[r.key]?.actual
-                if (a === undefined) return null
-                const pct = Math.min(Math.abs(a / b), 1.5)
-                const over = a > b && ['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
-                const under = a < b && !['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
-                const bad = over || under
-                return (
-                  <span style={{ display: 'inline-block', width: 60, height: 6, background: C.border, borderRadius: 3, overflow: 'hidden', verticalAlign: 'middle' }}>
-                    <span style={{ display: 'block', height: '100%', width: `${Math.round(pct * 100)}%`, background: bad ? C.danger : C.success, borderRadius: 3 }} />
-                  </span>
-                )
-              }},
-            ]} rows={CATEGORY_NAMES} keyFn={r => r.key} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0' }}>
+          <div style={{ ...chartBox, padding: '0.6rem' }}>
+            <div style={{ padding: '0 0 0.4rem', borderBottom: `1px solid ${C.borderLight}`, fontWeight: 600, fontSize: 11 }}>Income & Expenses — {MONTH_LABELS[pnlMonth]} 2026</div>
+            <div style={{ paddingTop: '0.25rem' }}>
+              <Table cols={[
+                { key: 'category', label: 'Category', render: r => r.label },
+                { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text, fontSize: 11 }}>{fmt(budgetValues[r.key]?.budget || 0)}</span> },
+                { key: 'actual', label: 'Actual', render: r => {
+                  const a = budgetValues[r.key]?.actual
+                  return a !== undefined ? <span style={{ color: C.textSecondary, fontSize: 11 }}>{fmt(a)}</span> : <span style={{ color: C.muted, fontSize: 11 }}>—</span>
+                }},
+                { key: 'variance', label: 'Variance', render: r => {
+                  const b = budgetValues[r.key]?.budget || 0
+                  const a = budgetValues[r.key]?.actual
+                  if (a === undefined) return <span style={{ color: C.muted, fontSize: 11 }}>—</span>
+                  const v = b - a
+                  const isExpense = ['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
+                  const showGood = isExpense ? v >= 0 : v <= 0
+                  const displayV = isExpense ? v : -v
+                  return <span style={{ color: showGood ? C.success : C.danger, fontWeight: 600, fontSize: 11 }}>{displayV >= 0 ? '+' : ''}{fmt(displayV)}</span>
+                }},
+                { key: 'bar', label: '', render: r => {
+                  const b = budgetValues[r.key]?.budget || 1
+                  const a = budgetValues[r.key]?.actual
+                  if (a === undefined) return null
+                  const pct = Math.min(Math.abs(a / b), 1.5)
+                  const over = a > b && ['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
+                  const under = a < b && !['bond', 'agent', 'municipal', 'maintenance'].includes(r.key)
+                  const bad = over || under
+                  return (
+                    <span style={{ display: 'inline-block', width: 40, height: 5, background: C.border, borderRadius: 3, overflow: 'hidden', verticalAlign: 'middle' }}>
+                      <span style={{ display: 'block', height: '100%', width: `${Math.round(pct * 100)}%`, background: bad ? C.danger : C.success, borderRadius: 3 }} />
+                    </span>
+                  )
+                }},
+              ]} rows={CATEGORY_NAMES} keyFn={r => r.key} />
+            </div>
           </div>
-        </div>
 
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8 }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`, fontWeight: 600, fontSize: 14 }}>Monthly Trend — {propName}</div>
-          <div style={{ padding: '0.5rem 0.75rem', overflowX: 'auto' }}>
-            <Table cols={[
-              { key: 'month', label: 'Month' },
-              { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text }}>{fmt(NET_BUDGET[key]?.[r.monthIdx] || 0)}</span> },
-              { key: 'actual', label: 'Actual', render: r => {
-                const a = ACTUAL_NETT[key]?.[r.monthIdx]
-                return a !== undefined ? <span style={{ color: C.muted }}>{fmt(a)}</span> : <span style={{ color: C.muted }}>—</span>
-              }},
-              { key: 'variance', label: 'Variance', render: r => {
-                const b = NET_BUDGET[key]?.[r.monthIdx]
-                const a = ACTUAL_NETT[key]?.[r.monthIdx]
-                if (b === undefined || a === undefined) return <span style={{ color: C.muted }}>—</span>
-                const v = a - b
-                return <span style={{ color: v >= 0 ? C.success : C.danger, fontWeight: 600 }}>{v >= 0 ? '+' : ''}{fmt(v)}</span>
-              }},
-            ]} rows={MONTH_LABELS.map((l, i) => ({ month: l, monthIdx: i }))} keyFn={r => r.monthIdx} />
+          <div style={{ ...chartBox, padding: '0.6rem' }}>
+            <div style={{ padding: '0 0 0.4rem', borderBottom: `1px solid ${C.borderLight}`, fontWeight: 600, fontSize: 11 }}>Monthly Trend — {propName}</div>
+            <div style={{ paddingTop: '0.25rem', overflowX: 'auto' }}>
+              <Table cols={[
+                { key: 'month', label: 'Month' },
+                { key: 'budget', label: 'Budget', render: r => <span style={{ color: C.text, fontSize: 11 }}>{fmt(NET_BUDGET[key]?.[r.monthIdx] || 0)}</span> },
+                { key: 'actual', label: 'Actual', render: r => {
+                  const a = ACTUAL_NETT[key]?.[r.monthIdx]
+                  return a !== undefined ? <span style={{ color: C.textSecondary, fontSize: 11 }}>{fmt(a)}</span> : <span style={{ color: C.muted, fontSize: 11 }}>—</span>
+                }},
+                { key: 'variance', label: 'Variance', render: r => {
+                  const b = NET_BUDGET[key]?.[r.monthIdx]
+                  const a = ACTUAL_NETT[key]?.[r.monthIdx]
+                  if (b === undefined || a === undefined) return <span style={{ color: C.muted, fontSize: 11 }}>—</span>
+                  const v = a - b
+                  return <span style={{ color: v >= 0 ? C.success : C.danger, fontWeight: 600, fontSize: 11 }}>{v >= 0 ? '+' : ''}{fmt(v)}</span>
+                }},
+              ]} rows={MONTH_LABELS.map((l, i) => ({ month: l, monthIdx: i }))} keyFn={r => r.monthIdx} />
+            </div>
           </div>
         </div>
       </div>
@@ -796,15 +759,28 @@ export default function Financials() {
       {workOrders.length === 0 ? <Empty msg="No maintenance work orders found." /> : (
         <Table cols={[
           { key: 'raised_at', label: 'Raised', render: r => r.raised_at ? r.raised_at.slice(0, 10) : '—' },
+          { key: 'due_date', label: 'Due', render: r => r.due_date
+            ? <span style={{ color: new Date(r.due_date) < new Date() && r.status !== 'completed' ? '#dc2626' : '#111827', fontWeight: r.due_date && new Date(r.due_date) < new Date() ? 600 : 400 }}>{r.due_date}</span>
+            : <span style={{ color: '#9ca3af' }}>—</span>
+          },
+          { key: 'priority', label: 'Priority', render: r => {
+            const colors = { high: ['#fef2f2','#dc2626'], medium: ['#fffbeb','#d97706'], low: ['#f0fdf4','#16a34a'] }
+            const [bg, fg] = colors[r.priority] || ['#f9fafb','#6b7280']
+            return r.priority
+              ? <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: bg, color: fg, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{r.priority}</span>
+              : <span style={{ color: '#9ca3af' }}>—</span>
+          }},
           { key: 'property_id', label: 'Property', render: r => properties.find(p => p.id === r.property_id)?.name || r.property_id },
           { key: 'description', label: 'Description' },
-          { key: 'status', label: 'Status', render: r => (
+          { key: 'status', label: 'Status', render: r => isAdmin ? (
             <Select value={r.status} onChange={v => handleWOStatus(r.id, v)}>
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </Select>
+          ) : (
+            <span style={{ textTransform: 'capitalize' }}>{r.status.replace(/_/g, ' ')}</span>
           )},
           { key: 'cost', label: 'Cost', render: r => r.cost ? fmt(r.cost) : '—' },
         ]} rows={workOrders} keyFn={r => r.id} />
@@ -812,69 +788,169 @@ export default function Financials() {
     </div>
   )
 
-  const renderReconciliation = () => (
-    <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <Select label="Property" value={recProp} onChange={setRecProp}>
-          {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </Select>
-        <Select label="Status" value={recFilter} onChange={setRecFilter}>
-          <option value="all">All</option>
-          <option value="matched">Matched</option>
-          <option value="unmatched">Unmatched</option>
-          <option value="pending">Pending</option>
-          <option value="exception">Exception</option>
-        </Select>
-      </div>
-      {reconciliations.length === 0 ? <Empty msg="No reconciliation entries found." /> : (
-        <Table cols={[
-          { key: 'period', label: 'Period' },
-          { key: 'rental_amount', label: 'Rental', render: r => r.rental_amount ? fmt(r.rental_amount) : '—' },
-          { key: 'bank_amount', label: 'Bank', render: r => r.bank_amount ? fmt(r.bank_amount) : '—' },
-          { key: 'variance', label: 'Variance', render: r => <span style={{ color: (r.variance || 0) !== 0 ? C.danger : C.success }}>{fmt(r.variance || 0)}</span> },
-          { key: 'status', label: 'Status', render: r => (
-            <Select value={r.status} onChange={v => handleRecUpdate(r.id, { status: v })}>
-              <option value="matched">Matched</option>
-              <option value="unmatched">Unmatched</option>
-              <option value="pending">Pending</option>
-              <option value="exception">Exception</option>
-            </Select>
-          )},
-          { key: 'notes', label: 'Notes', render: r => (
-            <input defaultValue={r.notes || ''} onBlur={e => handleRecUpdate(r.id, { notes: e.target.value })}
-              style={{ padding: '0.25rem 0.5rem', border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 12, width: 120 }} />
-          )},
-        ]} rows={reconciliations} keyFn={r => r.id} />
-      )}
-    </div>
-  )
+  function ReconDetailContent({ record, tab }) {
+    if (!record) return null
 
-  // ═══════════════════════════════════════
-  // MAIN RENDER
-  // ═══════════════════════════════════════
+    if (tab === 'levy') {
+      const v = Number(record.variance)
+      return (
+        <>
+          <div className="rec-detail-section">
+            <h4>Verification Summary</h4>
+            <div className="rec-detail-row"><span className="lbl">Period</span><span className="val">{record.period_display || record.period}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Agent Claims Paid</span><span className="val">{fmtLocal(record.rental_amount)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Body Corp Received</span><span className="val">{fmtLocal(record.bank_amount)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Variance</span><span className={`val variance${v < 0 ? ' negative' : v > 0 ? ' positive' : ''}`}>{fmtLocal(v)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Status</span><span className="val"><span className={`status ${record.status}`}>{record.status}</span></span></div>
+          </div>
+          {record.status === 'exception' && (
+            <div className="rec-detail-section">
+              <h4>Exception Details</h4>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '6px 0' }}>
+                Variance of {fmtLocal(Math.abs(v))} between agent claims and body corp receipts. Requires investigation.
+              </div>
+            </div>
+          )}
+        </>
+      )
+    }
+
+    if (tab === 'rental') {
+      const v = Number(record.rent_due) - Number(record.rent_collected)
+      return (
+        <>
+          <div className="rec-detail-section">
+            <h4>Unit Summary</h4>
+            <div className="rec-detail-row"><span className="lbl">Unit</span><span className="val">{record.unit_number}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Tenant</span><span className="val">{record.tenant_name}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Rent Due</span><span className="val">{fmtLocal(record.rent_due)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Rent Collected</span><span className="val">{fmtLocal(record.rent_collected)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Deposit Held</span><span className="val">{fmtLocal(record.deposit)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Variance</span><span className={`val variance${v < 0 ? ' negative' : v > 0 ? ' positive' : ''}`}>{fmtLocal(v)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Status</span><span className="val"><span className={`status ${record.status}`}>{record.status}</span></span></div>
+          </div>
+        </>
+      )
+    }
+
+    if (tab === 'municipal') {
+      const v = Number(record.variance)
+      return (
+        <>
+          <div className="rec-detail-section">
+            <h4>Verification Summary</h4>
+            <div className="rec-detail-row"><span className="lbl">Period</span><span className="val">{record.period}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Municipal Charged</span><span className="val">{fmtLocal(record.municipal_charged)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Agent Collected</span><span className="val">{fmtLocal(record.agent_collected)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Paid to Municipal</span><span className="val">{fmtLocal(record.paid_to_municipal)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Variance</span><span className={`val variance${v < 0 ? ' negative' : v > 0 ? ' positive' : ''}`}>{fmtLocal(v)}</span></div>
+            <div className="rec-detail-row"><span className="lbl">Status</span><span className="val"><span className={`status ${record.status}`}>{record.status}</span></span></div>
+          </div>
+          {record.status === 'exception' && (
+            <div className="rec-detail-section">
+              <h4>Exception Details</h4>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '6px 0' }}>
+                {fmtLocal(Math.abs(v))} collected but not remitted to municipality.
+              </div>
+            </div>
+          )}
+        </>
+      )
+    }
+
+    return null
+  }
+
+  const renderReconciliation = () => {
+    const colMap = { levy: LEVY_COLUMNS, rental: RENTAL_COLUMNS, municipal: MUNICIPAL_COLUMNS }
+    const dataMap = {
+      levy: allReconciliations.map(r => ({
+        ...r,
+        period_display: r.period?.includes('-')
+          ? (() => { const [y, m] = r.period.split('-'); return `${MONTH_LABELS[parseInt(m) - 1]} ${y}` })()
+          : r.period
+      })),
+      rental: SEED_RENTAL,
+      municipal: SEED_MUNICIPAL,
+    }
+    const rows = dataMap[recTab]
+    const cols = colMap[recTab]
+    const record = rows.find(r => r.id === recSelected) || null
+
+    const exceptionCount = rows.filter(r => r.status === 'exception').length
+    const matchedCount = rows.filter(r => r.status === 'matched' || r.status === 'verified').length
+    const totalVariance = rows.reduce((s, r) => {
+      if (recTab === 'levy') return s + Number(r.variance || 0)
+      if (recTab === 'rental') return s + (Number(r.rent_due) - Number(r.rent_collected))
+      if (recTab === 'municipal') return s + Number(r.variance || 0)
+      return s
+    }, 0)
+
+    const metrics = [
+      { label: 'Total Records', value: String(rows.length) },
+      { label: 'Matched', value: String(matchedCount) },
+      { label: 'Exceptions', value: String(exceptionCount) },
+      { label: 'Net Variance', value: fmtLocal(totalVariance) },
+    ]
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          {RECON_TABS.map(t => (
+            <div key={t.id}
+              className={`detail-tab${recTab === t.id ? ' active' : ''}`}
+              onClick={() => { setRecTab(t.id); setRecSelected(null) }}>
+              {t.label}
+            </div>
+          ))}
+        </div>
+        <SummaryMetrics metrics={metrics} />
+        <div className="rec-workspace">
+          <div className="rec-master">
+            <div style={{ overflow: 'auto', flex: 1 }}>
+              <table className="rec-data-table">
+                <thead>
+                  <tr>
+                    {cols.map(col => <th key={col.key}>{col.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length === 0 ? (
+                    <tr><td colSpan={cols.length} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13, cursor: 'default' }}>No records found</td></tr>
+                  ) : (
+                    rows.map(row => (
+                      <tr key={row.id} className={recSelected === row.id ? 'selected' : ''} onClick={() => setRecSelected(row.id)}>
+                        {cols.map(col => {
+                          if (col.key === 'status') {
+                            return <td key={col.key}><span className={`status ${row.status}`}>{row.status}</span></td>
+                          }
+                          if (col.key === 'period') {
+                            return <td key={col.key}>{row.period_display || row.period}</td>
+                          }
+                          if (['rental_amount', 'bank_amount', 'variance', 'rent_due', 'rent_collected', 'deposit', 'municipal_charged', 'agent_collected', 'paid_to_municipal'].includes(col.key)) {
+                            const val = Number(row[col.key])
+                            const cls = col.key === 'variance' ? (val < 0 ? 'negative' : val > 0 ? 'positive' : '') : ''
+                            return <td key={col.key} className={cls || undefined}>{fmtLocal(val)}</td>
+                          }
+                          return <td key={col.key}>{row[col.key]}</td>
+                        })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <DetailPanel title={record ? (record.period_display || record.period || record.unit_number || '') : 'Verification'} accentTag={record ? record.status : null}>
+            <ReconDetailContent record={record} tab={recTab} />
+          </DetailPanel>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ padding: '1.5rem 2rem', maxWidth: 1200 }}>
-      <h1 style={{ fontSize: 20, margin: '0 0 0.25rem' }}>Financials</h1>
-      <p style={{ margin: '0 0 1.25rem', color: C.muted, fontSize: 13 }}>
-        {activeTab === 'dashboard' ? 'Portfolio-wide financial dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-      </p>
-
-      {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: `2px solid ${C.border}`, marginBottom: '1.5rem', overflowX: 'auto' }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            style={{
-              padding: '0.6rem 1rem', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontSize: 13, fontWeight: activeTab === t.key ? 700 : 500,
-              color: activeTab === t.key ? C.navy : C.muted,
-              borderBottom: activeTab === t.key ? `2px solid ${C.navy}` : '2px solid transparent',
-              marginBottom: -2, whiteSpace: 'nowrap',
-            }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
+    <div style={{ padding: '16px 28px', maxWidth: 1200 }}>
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'ledgers' && renderLedgers()}
       {activeTab === 'pnl' && renderPnL()}
