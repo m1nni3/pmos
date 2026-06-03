@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router'
 import {
@@ -9,22 +9,30 @@ import {
 import './styles.css'
 import { CacheProvider } from './lib/cache'
 
-import Overview from './routes/overview'
-import Properties from './routes/properties'
-import Finances from './routes/finances'
-import LettingAgent from './routes/letting'
-import Management from './routes/management'
-import LeviesBanking from './routes/levies'
-import Insurance from './routes/insurance'
-import Bonds from './routes/bonds'
-import Maintenance from './routes/maintenance'
-import Reconciliation from './routes/reconciliation'
-import Contacts from './routes/contacts'
-import Documents from './routes/documents'
-import Portals from './routes/portals'
-import Settings from './routes/settings'
-import Import from './routes/import'
+const Overview = lazy(() => import('./routes/overview'))
+const Properties = lazy(() => import('./routes/properties'))
+const Finances = lazy(() => import('./routes/finances'))
+const LettingAgent = lazy(() => import('./routes/letting'))
+const Management = lazy(() => import('./routes/management'))
+const LeviesBanking = lazy(() => import('./routes/levies'))
+const Insurance = lazy(() => import('./routes/insurance'))
+const Bonds = lazy(() => import('./routes/bonds'))
+const Maintenance = lazy(() => import('./routes/maintenance'))
+const Reconciliation = lazy(() => import('./routes/reconciliation'))
+const Contacts = lazy(() => import('./routes/contacts'))
+const Documents = lazy(() => import('./routes/documents'))
+const Portals = lazy(() => import('./routes/portals'))
+const Settings = lazy(() => import('./routes/settings'))
+const Import = lazy(() => import('./routes/import'))
 import Login from './routes/login'
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center p-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pomp-navy"></div>
+    </div>
+  )
+}
 
 const tabs = [
   { name: 'Overview', path: '/overview', icon: LayoutDashboard },
@@ -89,24 +97,26 @@ function Layout() {
           <span className="font-heading font-bold text-pomp-navy">P.O.M.P</span>
         </div>
         <div className="p-4 lg:p-6">
-          <Routes>
-            <Route path="/overview" element={<Overview />} />
-            <Route path="/properties" element={<Properties />} />
-            <Route path="/finances" element={<Finances />} />
-            <Route path="/letting" element={<LettingAgent />} />
-            <Route path="/management" element={<Management />} />
-            <Route path="/levies" element={<LeviesBanking />} />
-            <Route path="/insurance" element={<Insurance />} />
-            <Route path="/bonds" element={<Bonds />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/reconciliation" element={<Reconciliation />} />
-            <Route path="/contacts" element={<Contacts />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/import" element={<Import />} />
-            <Route path="/portals" element={<Portals />} />
-            <Route path="*" element={<Navigate to="/overview" replace />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/overview" element={<Overview />} />
+              <Route path="/properties" element={<Properties />} />
+              <Route path="/finances" element={<Finances />} />
+              <Route path="/letting" element={<LettingAgent />} />
+              <Route path="/management" element={<Management />} />
+              <Route path="/levies" element={<LeviesBanking />} />
+              <Route path="/insurance" element={<Insurance />} />
+              <Route path="/bonds" element={<Bonds />} />
+              <Route path="/maintenance" element={<Maintenance />} />
+              <Route path="/reconciliation" element={<Reconciliation />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/documents" element={<Documents />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/import" element={<Import />} />
+              <Route path="/portals" element={<Portals />} />
+              <Route path="*" element={<Navigate to="/overview" replace />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
     </div>
