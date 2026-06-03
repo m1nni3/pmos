@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { TrendingDown, TrendingUp, DollarSign, PieChart } from 'lucide-react'
+import { TrendingDown, DollarSign } from 'lucide-react'
 import { apiClient, formatRand } from '../lib/utils'
 import { useCache } from '../lib/cache'
 
@@ -22,10 +22,11 @@ export default function PnlPage() {
   }
 
   const totalIncome = sum(data?.income || [], 'amount')
-  const totalLevies = sum(data?.levies || [], 'amount')
   const totalExpenses = sum(data?.expenses || [], 'amount')
   const totalMun = sum(data?.mun || [], 'amount')
-  const netProfit = totalIncome + totalLevies - totalExpenses - totalMun
+  const netProfit = totalIncome - totalExpenses - totalMun
+  const totalBudget = sum(data?.budgets?.filter((b: any) => b.category === 'rental') || [], 'budget_amount')
+  const variance = totalIncome - totalBudget
 
   return (
     <div>
@@ -48,9 +49,9 @@ export default function PnlPage() {
 
       <div className="kpi-row mb-4">
         <div className="kpi-card border-t-green-500"><p className="text-gray-500 text-xs uppercase">Rental Income</p><p className="text-xl font-bold text-green-600">{formatRand(totalIncome)}</p></div>
-        <div className="kpi-card border-t-blue-500"><p className="text-gray-500 text-xs uppercase">Levy Income</p><p className="text-xl font-bold text-blue-600">{formatRand(totalLevies)}</p></div>
         <div className="kpi-card border-t-orange-500"><p className="text-gray-500 text-xs uppercase">Expenses</p><p className="text-xl font-bold text-orange-600">{formatRand(totalExpenses)}</p></div>
         <div className="kpi-card border-t-red-500"><p className="text-gray-500 text-xs uppercase">Municipal</p><p className="text-xl font-bold text-red-600">{formatRand(totalMun)}</p></div>
+        <div className="kpi-card border-t-purple-500"><p className="text-gray-500 text-xs uppercase">Variance</p><p className={`text-xl font-bold ${variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatRand(variance)}</p></div>
         <div className="kpi-card border-t-pomp-navy"><p className="text-gray-500 text-xs uppercase">Net {netProfit >= 0 ? 'Profit' : 'Loss'}</p><p className={`text-xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatRand(Math.abs(netProfit))}</p></div>
       </div>
 
@@ -66,7 +67,6 @@ export default function PnlPage() {
             <tbody>
               {[
                 { label: 'Rental Income', data: data?.income || [], color: 'text-green-600' },
-                { label: 'Levy Income', data: data?.levies || [], color: 'text-blue-600' },
                 { label: 'Bank Expenses', data: data?.expenses || [], color: 'text-orange-600' },
                 { label: 'Municipal', data: data?.mun || [], color: 'text-red-600' },
               ].map(row => (
