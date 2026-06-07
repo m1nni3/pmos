@@ -14,7 +14,6 @@ export default function Login() {
       const res = await fetch(`/api/auth?code=${encodeURIComponent(code)}`, { method: 'POST' })
       const data = (await res.json()) as { ok?: boolean; token?: string }
       if (data.ok) {
-        // Store trimmed token to avoid whitespace issues
         sessionStorage.setItem('pomp_auth', (data.token || code).trim())
         setTimeout(() => {
           window.location.replace('/properties')
