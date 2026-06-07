@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POMP — Wireframe</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: #f5f6f8; color: #111; padding: 24px; }
+
+/* ── Legend ── */
+.legend { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #555; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+.legend-swatch.panel { background: #fff; border: 2px solid #868687; }
+.legend-swatch.element { background: #e8f0fe; border: 2px solid #868687; }
+.legend-swatch.interactive { background: #fef3e2; border: 2px solid #868687; }
+
+/* ── Wireframe container ── */
+.wireframe { position: relative; display: flex; gap: 0; border: 2px solid #868687; border-radius: 12px; overflow: hidden; background: #f5f6f8; min-height: 680px; }
+
+/* ── Labels (always visible, non-obscuring) ── */
+.label {
+  position: absolute;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #fff;
+  background: #868687;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  line-height: 1.4;
+}
+.label.dim { font-weight: 400; background: #a0a0a0; font-size: 9px; }
+.label.dark { background: #555; }
+.label.dim span { font-weight: 300; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px; min-width: 220px;
+  background: #fff;
+  border-right: 2px solid #868687;
+  position: relative;
+  padding: 0;
+}
+.sidebar-inner { padding: 20px 0; }
+.sidebar-logo { padding: 0 16px 16px; border-bottom: 2px solid #868687; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.sidebar-logo-icon { width: 28px; height: 28px; border: 2px solid #868687; border-radius: 6px; }
+.sidebar-logo-text { width: 80px; height: 8px; border: 2px solid #868687; border-radius: 2px; }
+
+.sidebar-section { padding: 8px 16px 4px; }
+.sidebar-section-label { font-size: 9px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.sidebar-section-label::after { content: ''; flex: 1; height: 2px; background: #868687; }
+.sidebar-link { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 2px solid transparent; border-radius: 4px; margin-bottom: 2px; font-size: 11px; color: #444; cursor: default; }
+.sidebar-link.active { border-color: #868687; background: #e8f0fe; color: #111; font-weight: 600; }
+.sidebar-link-icon { width: 14px; height: 14px; border: 2px solid #868687; border-radius: 3px; flex-shrink: 0; }
+.sidebar-signout { margin-top: 20px; padding: 12px 16px 0; border-top: 2px solid #868687; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #888; cursor: default; }
+
+/* ── Main content area ── */
+.main {
+  flex: 1; min-width: 0;
+  background: #f5f6f8;
+  position: relative;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;  /* whole page scrolls */
+}
+
+/* ── Ledger layout variant: KPI + chart pinned, table fills rest + scrolls ── */
+.main.ledger-layout { overflow-y: hidden; }
+.main.ledger-layout .ledger-table-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.main.ledger-layout .ledger-table-section .data-table-wrap { flex: 1; min-height: 0; overflow-y: auto; border: 2px solid #868687; border-radius: 6px; }
+.main.ledger-layout .ledger-table-section .data-table-wrap .table-header { position: sticky; top: 0; z-index: 2; }
+.page-title-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.page-title-text { width: 100px; height: 12px; border: 2px solid #868687; border-radius: 2px; margin-bottom: 4px; }
+.page-sub-text { width: 180px; height: 8px; border: 2px solid #a0a0a0; border-radius: 2px; }
+
+/* ── Tab Bar ── */
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid #868687; margin-bottom: 20px; }
+.tab-item { padding: 8px 18px; font-size: 11px; border: 2px solid #868687; border-bottom: none; border-radius: 6px 6px 0 0; margin-bottom: -2px; background: #fff; color: #666; cursor: default; position: relative; }
+.tab-item.active { background: #e8f0fe; font-weight: 600; color: #111; border-bottom: 2px solid #e8f0fe; }
+
+/* ── KPI Row ── */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.kpi-card { background: #fff; border: 2px solid #868687; border-radius: 8px; padding: 14px 16px; border-top: 4px solid #868687; position: relative; }
+.kpi-label { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+.kpi-value { width: 50%; height: 14px; border: 2px solid #868687; border-radius: 2px; }
+
+/* ── Chart Cards ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.chart-grid-single { grid-template-columns: 1fr; }
+.card { background: #fff; border: 2px solid #868687; border-radius: 8px; overflow: hidden; position: relative; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid #868687; }
+.card-title { width: 120px; height: 10px; border: 2px solid #868687; border-radius: 2px; }
+.card-subtitle { width: 80px; height: 7px; border: 2px solid #a0a0a0; border-radius: 2px; margin-top: 3px; }
+.card-badge { padding: 2px 6px; border: 2px solid #868687; border-radius: 8px; font-size: 8px; color: #666; }
+.card-body { padding: 16px; }
+.chart-area { width: 100%; height: 160px; border: 2px dashed #bbb; border-radius: 4px; background: #fafafa; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 11px; }
+
+/* ── Filter Bar ── */
+.filter-bar { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.filter-search { width: 140px; height: 24px; border: 2px solid #868687; border-radius: 4px; }
+.filter-select { width: 120px; height: 24px; border: 2px solid #868687; border-radius: 4px; }
+
+/* ── Data Table ── */
+.data-table { border: 2px solid #868687; border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+.table-header { display: flex; background: #f0f1f3; border-bottom: 2px solid #868687; }
+.table-header-cell { flex: 1; padding: 7px 10px; font-size: 9px; font-weight: 600; color: #666; text-transform: uppercase; border-right: 2px solid #868687; }
+.table-header-cell:last-child { border-right: none; }
+.table-row { display: flex; border-bottom: 2px solid #e8e8e8; }
+.table-row:last-child { border-bottom: none; }
+.table-cell { flex: 1; padding: 6px 10px; font-size: 10px; color: #444; border-right: 1px solid #e8e8e8; height: 24px; display: flex; align-items: center; }
+.table-cell:last-child { border-right: none; }
+.table-cell-bar { width: 40%; height: 8px; border: 2px solid #bbb; border-radius: 2px; }
+
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; border-top: 2px solid #868687; font-size: 10px; color: #666; }
+.pagination-info { width: 100px; height: 8px; border: 2px solid #a0a0a0; border-radius: 2px; }
+.pagination-btns { display: flex; gap: 4px; }
+.pagination-btn { width: 22px; height: 18px; border: 2px solid #868687; border-radius: 3px; }
+
+/* ── Modal ── */
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.15); z-index: 20; display: flex; align-items: center; justify-content: center; }
+.modal { width: 380px; background: #fff; border: 2px solid #868687; border-radius: 10px; overflow: hidden; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 2px solid #868687; }
+.modal-title { width: 100px; height: 10px; border: 2px solid #868687; border-radius: 2px; }
+.modal-close { width: 18px; height: 18px; border: 2px solid #868687; border-radius: 4px; }
+.modal-body { padding: 16px; }
+.form-field { margin-bottom: 10px; }
+.form-label { font-size: 9px; color: #888; margin-bottom: 3px; }
+.form-input { width: 100%; height: 26px; border: 2px solid #868687; border-radius: 4px; }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-input { flex: 1; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 2px solid #868687; }
+.btn { padding: 6px 16px; font-size: 10px; border: 2px solid #868687; border-radius: 4px; background: #fff; cursor: default; }
+.btn-primary { background: #e8f0fe; font-weight: 600; }
+
+/* ── Layout zones overlay ── */
+.zone { position: absolute; border: 2px dashed rgba(134, 134, 135, 0.4); pointer-events: none; z-index: 5; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch panel"></div> Panel / Container</div>
+  <div class="legend-item"><div class="legend-swatch element"></div> Interactive Element</div>
+  <div class="legend-item"><div class="legend-swatch interactive"></div> Active / Selected</div>
+  <span style="font-size:10px;color:#999;margin-left:auto;">All borders: 2px #868687 · Labels: #868687 background</span>
+</div>
+
+<div class="wireframe">
+  <!-- ─── SIDEBAR ─── -->
+  <div class="sidebar">
+    <div class="label" style="top:8px;left:8px;">A: Sidebar</div>
+
+    <div class="sidebar-inner">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon"></div>
+        <div class="sidebar-logo-text"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Prop Portfolio <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link active">
+          <div class="sidebar-link-icon"></div> Properties
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A1</span>
+        </div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Contacts
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A2</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Financials <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Finances
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A3</span>
+        </div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Documents
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A4</span>
+        </div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Reports
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A5</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Oversight <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Petty Cash
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A6</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Settings <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Settings
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A7</span>
+        </div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Import
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A8</span>
+        </div>
+        <div class="sidebar-link">
+          <div class="sidebar-link-icon"></div> Portals
+          <span class="label dim" style="position:static;margin-left:auto;font-size:7px;padding:1px 4px;">A9</span>
+        </div>
+      </div>
+
+      <div class="sidebar-signout">
+        <div class="sidebar-link-icon"></div> Sign Out
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <div class="main">
+    <div class="label" style="top:8px;left:8px;">B: Main Content</div>
+
+    <!-- Page Title -->
+    <div class="page-title-bar">
+      <div>
+        <div class="page-title-text"></div>
+        <div class="page-sub-text"></div>
+      </div>
+      <div class="label dim" style="position:static;font-size:8px;padding:2px 6px;">B0: Page Header</div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active">Overview <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C1</span></div>
+      <div class="tab-item">P/L <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C2</span></div>
+      <div class="tab-item">Rental Ledger <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C3</span></div>
+      <div class="tab-item">Levy Ledger <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C4</span></div>
+      <div class="tab-item">Bank Statements <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C5</span></div>
+      <span class="label dim" style="position:static;margin-left:auto;font-size:8px;padding:2px 6px;">C: Tab Bar</span>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row">
+      <div class="kpi-card" style="border-top-color:#16a34a;">
+        <div class="kpi-label">Income</div>
+        <div class="kpi-value"></div>
+        <span class="label dim" style="top:4px;right:4px;font-size:7px;padding:0 4px;">D1</span>
+      </div>
+      <div class="kpi-card" style="border-top-color:#dc2626;">
+        <div class="kpi-label">Expenses</div>
+        <div class="kpi-value"></div>
+        <span class="label dim" style="top:4px;right:4px;font-size:7px;padding:0 4px;">D2</span>
+      </div>
+      <div class="kpi-card" style="border-top-color:#2563eb;">
+        <div class="kpi-label">Net</div>
+        <div class="kpi-value"></div>
+        <span class="label dim" style="top:4px;right:4px;font-size:7px;padding:0 4px;">D3</span>
+      </div>
+      <div class="kpi-card" style="border-top-color:#94a3b8;">
+        <div class="kpi-label">Total Entries</div>
+        <div class="kpi-value"></div>
+        <span class="label dim" style="top:4px;right:4px;font-size:7px;padding:0 4px;">D4</span>
+      </div>
+      <span class="label dim" style="position:absolute;top:70px;left:250px;font-size:8px;padding:2px 6px;">D: KPI Row</span>
+    </div>
+
+    <!-- Chart: Monthly Income vs Expenses (full width) -->
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-header">
+        <div>
+          <div class="card-title"></div>
+          <div class="card-subtitle"></div>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <div class="card-badge">6m</div>
+          <div class="card-badge" style="background:#e8f0fe;font-weight:600;">12m</div>
+          <div class="card-badge">All</div>
+        </div>
+        <span class="label dim" style="position:absolute;top:4px;right:4px;font-size:7px;padding:0 4px;">E: Chart Card</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-area">Chart: Monthly Income vs Expenses</div>
+      </div>
+    </div>
+
+    <!-- 2-col charts -->
+    <div class="chart-grid" style="margin-bottom:12px;">
+      <!-- Budget vs Actual -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"></div>
+          <div class="card-badge">Bar</div>
+          <span class="label dim" style="position:absolute;top:4px;right:4px;font-size:7px;padding:0 4px;">F1: Budget vs Actual</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-area" style="height:140px;">Chart: Budget vs Actual (MTD)</div>
+        </div>
+      </div>
+      <!-- Reconciliation Status -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"></div>
+          <div class="card-badge">Doughnut</div>
+          <span class="label dim" style="position:absolute;top:4px;right:4px;font-size:7px;padding:0 4px;">F2: Reconciliation</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-area" style="height:140px;">Chart: Reconciliation Status</div>
+        </div>
+      </div>
+      <span class="label dim" style="position:absolute;top:515px;left:250px;font-size:8px;padding:2px 6px;">F: Chart Row</span>
+    </div>
+
+    <!-- Filter Bar + Data Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title" style="width:80px;"></div>
+        <div class="label dim" style="position:absolute;top:4px;right:4px;font-size:7px;padding:0 4px;">G: Table Header</div>
+        <div class="filter-bar" style="padding:0;">
+          <div class="filter-search"></div>
+          <div class="filter-select"></div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="label dim" style="position:absolute;left:30px;margin-top:-12px;font-size:7px;padding:0 4px;">H: Data Table</div>
+      <div class="data-table" style="margin:0 12px 0;">
+        <div class="table-header">
+          <div class="table-header-cell" style="flex:0 0 80px;">Date</div>
+          <div class="table-header-cell">Description</div>
+          <div class="table-header-cell" style="flex:0 0 70px;">Ref</div>
+          <div class="table-header-cell" style="flex:0 0 90px;">Category</div>
+          <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Debit</div>
+          <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Credit</div>
+          <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Balance</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell" style="flex:0 0 80px;">2025-12-01</div>
+          <div class="table-cell"><div class="table-cell-bar"></div></div>
+          <div class="table-cell" style="flex:0 0 70px;">—</div>
+          <div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">RENTAL_INC</span></div>
+          <div class="table-cell" style="flex:0 0 80px;">—</div>
+          <div class="table-cell" style="flex:0 0 80px;">R4,000</div>
+          <div class="table-cell" style="flex:0 0 80px;">R12,340</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell" style="flex:0 0 80px;">2025-11-01</div>
+          <div class="table-cell"><div class="table-cell-bar" style="width:60%;"></div></div>
+          <div class="table-cell" style="flex:0 0 70px;">—</div>
+          <div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">RENTAL_INC</span></div>
+          <div class="table-cell" style="flex:0 0 80px;">—</div>
+          <div class="table-cell" style="flex:0 0 80px;">R4,000</div>
+          <div class="table-cell" style="flex:0 0 80px;">R8,340</div>
+        </div>
+        <div class="table-row">
+          <div class="table-cell" style="flex:0 0 80px;">2025-10-01</div>
+          <div class="table-cell"><div class="table-cell-bar" style="width:50%;"></div></div>
+          <div class="table-cell" style="flex:0 0 70px;">—</div>
+          <div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">RENTAL_INC</span></div>
+          <div class="table-cell" style="flex:0 0 80px;">—</div>
+          <div class="table-cell" style="flex:0 0 80px;">R4,000</div>
+          <div class="table-cell" style="flex:0 0 80px;">R4,340</div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <div class="pagination-info"></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:9px;color:#999;">1–100 of 1,234</span>
+          <div class="pagination-btns">
+            <div class="pagination-btn"></div>
+            <div class="pagination-btn"></div>
+          </div>
+        </div>
+        <span class="label dim" style="position:static;font-size:7px;padding:0 4px;">I: Pagination</span>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- Dimension annotations -->
+  <div style="position:absolute;bottom:-22px;left:0;right:0;display:flex;font-size:9px;color:#868687;font-weight:500;">
+    <span style="flex:0 0 220px;text-align:center;border-right:2px solid #868687;">220px (Sidebar)</span>
+    <span style="flex:1;text-align:center;">Flex-1 (Main Content)</span>
+  </div>
+  <div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:9px;color:#868687;font-weight:500;">
+    Full viewport — responsive
+  </div>
+</div>
+
+<!-- ─── VARIANT B: LEDGER PAGE LAYOUT ─── -->
+<div style="margin-top:40px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:11px;font-weight:600;color:#555;">Layout Variant B — Ledger Pages (C3–C5)</span>
+  <span style="font-size:9px;color:#999;">Table fills remaining height, scrolls internally</span>
+</div>
+
+<div class="wireframe" style="min-height:520px;">
+  <!-- sidebar same as above -->
+  <div class="sidebar">
+    <div class="label" style="top:8px;left:8px;">A: Sidebar</div>
+    <div class="sidebar-inner">
+      <div class="sidebar-logo"><div class="sidebar-logo-icon"></div><div class="sidebar-logo-text"></div></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Prop Portfolio <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Properties</div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Contacts</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Financials <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link active"><div class="sidebar-link-icon"></div> Finances</div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Documents</div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Reports</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Oversight <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Petty Cash</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Settings <span style="font-weight:300;color:#bbb;font-size:8px;">▸</span></div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Settings</div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Import</div>
+        <div class="sidebar-link"><div class="sidebar-link-icon"></div> Portals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- main with ledger-layout class -->
+  <div class="main ledger-layout">
+    <div class="label" style="top:8px;left:8px;">B: Main Content <span style="font-weight:300;">(ledger layout)</span></div>
+
+    <!-- Page Title -->
+    <div class="page-title-bar">
+      <div>
+        <div class="page-title-text"></div>
+        <div class="page-sub-text"></div>
+      </div>
+      <div class="label dim" style="position:static;font-size:8px;padding:2px 6px;">B0: Page Header</div>
+    </div>
+
+    <!-- Tab Bar (Ledger selected) -->
+    <div class="tab-bar">
+      <div class="tab-item">Overview</div>
+      <div class="tab-item">P/L</div>
+      <div class="tab-item active">Rental Ledger <span class="label dim" style="position:static;margin-left:4px;font-size:7px;padding:0 4px;">C3</span></div>
+      <div class="tab-item">Levy Ledger</div>
+      <div class="tab-item">Bank Statements</div>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-row" style="margin-bottom:10px;">
+      <div class="kpi-card" style="border-top-color:#16a34a;"><div class="kpi-label">Income</div><div class="kpi-value"></div></div>
+      <div class="kpi-card" style="border-top-color:#dc2626;"><div class="kpi-label">Expenses</div><div class="kpi-value"></div></div>
+      <div class="kpi-card" style="border-top-color:#2563eb;"><div class="kpi-label">Net</div><div class="kpi-value"></div></div>
+      <div class="kpi-card" style="border-top-color:#94a3b8;"><div class="kpi-label">Total Entries</div><div class="kpi-value"></div></div>
+      <span class="label dim" style="position:absolute;top:68px;left:250px;font-size:8px;padding:2px 6px;">D: KPI Row</span>
+    </div>
+
+    <!-- Chart: compact -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-header">
+        <div class="card-title"></div>
+        <div style="display:flex;gap:4px;">
+          <div class="card-badge">6m</div>
+          <div class="card-badge" style="background:#e8f0fe;font-weight:600;">12m</div>
+          <div class="card-badge">All</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-area" style="height:80px;">Chart: Monthly Income vs Expenses</div>
+      </div>
+      <span class="label dim" style="position:absolute;top:4px;right:4px;font-size:7px;padding:0 4px;">E: Chart Card</span>
+    </div>
+
+    <!-- ledger-table-section: flex-1, fills remaining height -->
+    <div class="ledger-table-section">
+      <div class="label dim" style="position:relative;display:inline-block;margin-bottom:2px;font-size:7px;padding:0 4px;">J: Table Section (flex-1, fills remaining height)</div>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="card-header">
+          <div class="card-title" style="width:80px;"></div>
+          <div class="filter-bar" style="padding:0;">
+            <div class="filter-search"></div>
+            <div class="filter-select"></div>
+          </div>
+          <span class="label dim" style="position:static;font-size:7px;padding:0 4px;">G: Table Header + Filters</span>
+        </div>
+
+        <div class="data-table-wrap" style="flex:1;min-height:0;">
+          <div class="table-header">
+            <div class="table-header-cell" style="flex:0 0 80px;">Date</div>
+            <div class="table-header-cell">Description</div>
+            <div class="table-header-cell" style="flex:0 0 70px;">Ref</div>
+            <div class="table-header-cell" style="flex:0 0 90px;">Category</div>
+            <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Debit</div>
+            <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Credit</div>
+            <div class="table-header-cell" style="flex:0 0 80px;text-align:right;">Balance</div>
+          </div>
+          <div class="table-row"><div class="table-cell" style="flex:0 0 80px;">2026-01-05</div><div class="table-cell"><div class="table-cell-bar"></div></div><div class="table-cell" style="flex:0 0 70px;">—</div><div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">RENTAL</span></div><div class="table-cell" style="flex:0 0 80px;">—</div><div class="table-cell" style="flex:0 0 80px;">R8,500</div><div class="table-cell" style="flex:0 0 80px;">R45,250</div></div>
+          <div class="table-row"><div class="table-cell" style="flex:0 0 80px;">2025-12-01</div><div class="table-cell"><div class="table-cell-bar" style="width:65%;"></div></div><div class="table-cell" style="flex:0 0 70px;">INV-023</div><div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">COMM</span></div><div class="table-cell" style="flex:0 0 80px;">R520</div><div class="table-cell" style="flex:0 0 80px;">—</div><div class="table-cell" style="flex:0 0 80px;">R36,750</div></div>
+          <div class="table-row"><div class="table-cell" style="flex:0 0 80px;">2025-11-03</div><div class="table-cell"><div class="table-cell-bar" style="width:55%;"></div></div><div class="table-cell" style="flex:0 0 70px;">—</div><div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#fef3e2;">PAID</span></div><div class="table-cell" style="flex:0 0 80px;">—</div><div class="table-cell" style="flex:0 0 80px;">R2,700</div><div class="table-cell" style="flex:0 0 80px;">R28,750</div></div>
+          <div class="table-row"><div class="table-cell" style="flex:0 0 80px;">2025-10-01</div><div class="table-cell"><div class="table-cell-bar" style="width:50%;"></div></div><div class="table-cell" style="flex:0 0 70px;">—</div><div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#e8f0fe;">RENTAL</span></div><div class="table-cell" style="flex:0 0 80px;">—</div><div class="table-cell" style="flex:0 0 80px;">R4,000</div><div class="table-cell" style="flex:0 0 80px;">R24,050</div></div>
+          <div class="table-row"><div class="table-cell" style="flex:0 0 80px;">2025-09-02</div><div class="table-cell"><div class="table-cell-bar" style="width:45%;"></div></div><div class="table-cell" style="flex:0 0 70px;">—</div><div class="table-cell" style="flex:0 0 90px;"><span class="card-badge" style="font-size:8px;background:#fef3e2;">MAINT</span></div><div class="table-cell" style="flex:0 0 80px;">R3,650</div><div class="table-cell" style="flex:0 0 80px;">—</div><div class="table-cell" style="flex:0 0 80px;">R20,050</div></div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+          <div class="pagination-info"></div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:9px;color:#999;">1–100 of 3,241</span>
+            <div class="pagination-btns"><div class="pagination-btn"></div><div class="pagination-btn"></div></div>
+          </div>
+          <span class="label dim" style="position:static;font-size:7px;padding:0 4px;">I: Pagination</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dimension annotations -->
+  <div style="position:absolute;bottom:-22px;left:0;right:0;display:flex;font-size:9px;color:#868687;font-weight:500;">
+    <span style="flex:0 0 220px;text-align:center;border-right:2px solid #868687;">220px (Sidebar)</span>
+    <span style="flex:1;text-align:center;">Flex-1 (Main Content)</span>
+  </div>
+</div>
+
+<!-- Key overlay zones -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:32px;padding:16px;border:2px solid #868687;border-radius:8px;background:#fff;">
+  <div>
+    <h4 style="font-size:11px;margin-bottom:8px;color:#555;font-weight:600;">A — Sidebar (220px)</h4>
+    <ul style="font-size:10px;color:#777;list-style:none;">
+      <li>A1: Properties link</li>
+      <li>A2: Contacts link</li>
+      <li>A3: Finances link</li>
+      <li>A4: Documents link</li>
+      <li>A5: Reports link</li>
+      <li>A6: Petty Cash link</li>
+      <li>A7: Settings link</li>
+      <li>A8: Import link</li>
+      <li>A9: Portals link</li>
+    </ul>
+  </div>
+  <div>
+    <h4 style="font-size:11px;margin-bottom:8px;color:#555;font-weight:600;">B — Main Content</h4>
+    <ul style="font-size:10px;color:#777;list-style:none;">
+      <li>B0: Page Header (title + subtitle)</li>
+      <li>C1–C5: Tab bar items</li>
+      <li>D1–D4: KPI cards</li>
+      <li>E: Chart card (Income vs Expenses, full-width)</li>
+      <li>F1: Budget vs Actual chart</li>
+      <li>F2: Reconciliation chart</li>
+      <li>G: Table header + filter bar</li>
+      <li>H: Data table rows</li>
+      <li>I: Pagination footer</li>
+      <li style="margin-top:6px;font-weight:600;">Ledger variant (C3–C5 only):</li>
+      <li>J: Table section (flex-1, fills height)</li>
+    </ul>
+  </div>
+  <div>
+    <h4 style="font-size:11px;margin-bottom:8px;color:#555;font-weight:600;">Dimensions</h4>
+    <ul style="font-size:10px;color:#777;list-style:none;">
+      <li>Sidebar: 220px fixed width</li>
+      <li>Main: flex-1 (rest of viewport)</li>
+      <li>KPI row: 4-col grid</li>
+      <li>Charts: 1 full + 2-col below</li>
+      <li>Table: 7 columns</li>
+      <li>Full wireframe: 680px min height</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

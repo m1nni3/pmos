@@ -1,23 +1,24 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { apiClient } from './utils'
+import type { Property } from '../types'
 
-const cache = new Map<string, { data: any; fetchedAt: number }>()
-const inflight = new Map<string, Promise<any>>()
+const cache = new Map<string, { data: unknown; fetchedAt: number }>()
+const inflight = new Map<string, Promise<unknown>>()
 const STALE_MS = 60_000
 const RETRY_MS = 3_000
 
-function getCached(key: string) {
+function getCached(key: string): unknown {
   const entry = cache.get(key)
   if (!entry) return null
   if (Date.now() - entry.fetchedAt > STALE_MS) return null
   return entry.data
 }
 
-function setCached(key: string, data: any) {
+function setCached(key: string, data: unknown) {
   cache.set(key, { data, fetchedAt: Date.now() })
 }
 
-export async function fetchWithCache(key: string, fetcher: () => Promise<any>): Promise<any> {
+export async function fetchWithCache(key: string, fetcher: () => Promise<unknown>): Promise<unknown> {
   const cached = getCached(key)
   if (cached) return cached
   const existing = inflight.get(key)
@@ -41,19 +42,19 @@ export function invalidateCache(key?: string) {
 }
 
 interface CacheContextValue {
-  dashboard: any
-  properties: any[]
+  dashboard: unknown
+  properties: Property[]
   refreshDashboard: () => Promise<void>
   refreshProperties: () => Promise<void>
-  get: (key: string, fetcher: () => Promise<any>) => Promise<any>
+  get: (key: string, fetcher: () => Promise<unknown>) => Promise<unknown>
   invalidate: (key?: string) => void
 }
 
 const CacheContext = createContext<CacheContextValue | null>(null)
 
 export function CacheProvider({ children }: { children: React.ReactNode }) {
-  const [dashboard, setDashboard] = useState<any>(null)
-  const [properties, setProperties] = useState<any[]>([])
+  const [dashboard, setDashboard] = useState<unknown>(null)
+  const [properties, setProperties] = useState<Property[]>([])
 
   const refreshDashboard = useCallback(async () => {
     try {
@@ -64,8 +65,8 @@ export function CacheProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProperties = useCallback(async () => {
     try {
-      const data = await fetchWithCache('/api/properties', () => apiClient.get('/properties'))
-      setProperties(data)
+      const data = await fetchWithCache('/api/properties', () => apiClient.get<Property[]>('/properties'))
+      setProperties(Array.isArray(data) ? (data as Property[]) : [])
     } catch (e) { console.error(e) }
   }, [])
 

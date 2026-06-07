@@ -53,15 +53,24 @@ app.use('/api/*', async (c, next) => {
 app.post('/api/auth', async (c) => {
   // If Cloudflare Access is active, auth is handled externally — just return ok
   const cfAccessJwt = c.req.header('Cf-Access-Jwt-Assertion')
-  if (cfAccessJwt) return c.json({ ok: true, method: 'cf-access' })
+  if (cfAccessJwt) {
+    logActivity(c, 'login', 'auth', null, 'User login', 'cf-access')
+    return c.json({ ok: true, method: 'cf-access' })
+  }
 
   const code = c.req.query('code')
   const expected = c.env.ACCESS_CODE || 'pomp123'
-  if (code && code === expected) return c.json({ ok: true, token: expected })
+  if (code && code === expected) {
+    logActivity(c, 'login', 'auth', null, 'User login', 'code')
+    return c.json({ ok: true, token: expected })
+  }
 
   try {
     const body = await c.req.json()
-    if (body.code && body.code === expected) return c.json({ ok: true, token: expected })
+    if (body.code && body.code === expected) {
+      logActivity(c, 'login', 'auth', null, 'User login', 'body')
+      return c.json({ ok: true, token: expected })
+    }
   } catch {}
 
   return c.json({ error: 'invalid code' }, 401)
@@ -675,15 +684,16 @@ app.put('/api/properties/:id/details', async (c) => {
   const body = await c.req.json()
   const fields = [
     'unit_number','door_number','erf_number','scheme_number','size_sqm','bedrooms','bathrooms','parking_bays',
-    'suburb','township','lpi_code','purchase_date','purchase_price','current_market_value',
+    'suburb','township','lpi_code','purchase_date','purchase_price','current_market_value','valuation_date',
     'title_deed_reference','owner_name','owner_id','registered_owner',
     'municipality_name','municipal_valuation','municipal_valuation_year','municipal_account_number','municipal_paid_by',
-    'agency','managing_agent_name','portfolio_manager','agent_email','agent_phone','account_administrator',
+    'agency','managing_agent_name','managing_agency','portfolio_manager','agent_email','agent_phone','account_administrator',
     'maintenance_manager','department_head','management_fee','payment_method','branch','branch_code',
-    'tenant_name','tenant_phone','tenant_email','tenant_notes',
+    'tenant_name','tenant_phone','tenant_email','tenant_notes','lease_expiry',
     'bc_name','bc_registration_number','bc_bank','bc_account_name','bc_branch','bc_branch_code',
     'bc_levy_reference','bc_levy_payment_method','bc_contact_name','bc_contact_phone','bc_contact_email',
     'bond_bank','bond_account_number','original_bond_amount','monthly_bond_payment','expected_payoff_date',
+    'bond_endorsement','bond_endorsement_date','bond_status',
     'insurer','broker','policy_number','policy_holder','geyser_excess','annual_renewal_date','insurance_contact',
     'emergency_contact_name','emergency_contact_phone','emergency_contact_email','emergency_contact_notes',
   ]
@@ -723,6 +733,7 @@ app.post('/api/property-contacts', async (c) => {
   await c.env.DB.prepare(
     'INSERT INTO property_contacts (id, property_id, category, subcategory, name, phone, email, notes) VALUES (?,?,?,?,?,?,?,?)'
   ).bind(id, body.property_id, body.category, body.subcategory || null, body.name, body.phone || null, body.email || null, body.notes || null).run()
+  logActivity(c, 'create', 'property-contact', id, body.name)
   return c.json({ id }, 201)
 })
 
@@ -732,11 +743,14 @@ app.put('/api/property-contacts/:id', async (c) => {
   await c.env.DB.prepare(
     'UPDATE property_contacts SET category=?, subcategory=?, name=?, phone=?, email=?, notes=? WHERE id=?'
   ).bind(body.category, body.subcategory || null, body.name, body.phone || null, body.email || null, body.notes || null, id).run()
+  logActivity(c, 'update', 'property-contact', id, body.name)
   return c.json({ ok: true })
 })
 
 app.delete('/api/property-contacts/:id', async (c) => {
-  await c.env.DB.prepare('DELETE FROM property_contacts WHERE id = ?').bind(c.req.param('id')).run()
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM property_contacts WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'property-contact', id, '')
   return c.json({ ok: true })
 })
 
@@ -772,41 +786,30 @@ app.delete('/api/property-documents/:id', async (c) => {
 // ── P&L (Profit & Loss) ─────────────────────────────────
 app.get('/api/pnl', async (c) => {
   const pid = c.req.query('property_id')
-  const year = parseInt(c.req.query('year') || String(new Date().getFullYear()))
-  const clauses: string[] = []
-  const params: any[] = []
-  if (pid && pid !== 'all') { clauses.push('r.property_id = ?'); params.push(pid) }
-  params.push(year)
+  const year = c.req.query('year') || String(new Date().getFullYear())
+  const clause = pid && pid !== 'all' ? 'WHERE property_id = ? AND year = ?' : 'WHERE year = ?'
+  const params: any[] = pid && pid !== 'all' ? [pid, year] : [year]
 
-  const { results: income } = await c.env.DB.prepare(`
-    SELECT property_id, strftime('%m', date) as month, sum(credit) as amount
-    FROM rental_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
-    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
-  `).bind(...params).all() as any
+  const { results: actuals } = await c.env.DB.prepare(
+    `SELECT * FROM pl_monthly ${clause}`
+  ).bind(...params).all() as any
 
-  const { results: levies } = await c.env.DB.prepare(`
-    SELECT property_id, strftime('%m', date) as month, sum(credit) as amount
-    FROM levy_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
-    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
-  `).bind(...params).all() as any
+  // Group by category_key, return as monthly arrays
+  const grouped: Record<string, { month: string; amount: number }[]> = {}
+  for (const r of actuals as any[]) {
+    if (!grouped[r.category_key]) grouped[r.category_key] = []
+    grouped[r.category_key].push({ month: String(r.month), amount: r.amount })
+  }
 
-  const { results: expenses } = await c.env.DB.prepare(`
-    SELECT property_id, strftime('%m', date) as month, sum(debit) as amount
-    FROM bank_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
-    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
-  `).bind(...params).all() as any
-
-  const { results: mun } = await c.env.DB.prepare(`
-    SELECT property_id, strftime('%m', date) as month, sum(debit) as amount
-    FROM municipality_ledger r ${clauses.length ? 'WHERE ' + clauses.join(' AND ') : ''}
-    AND strftime('%Y', date) = ? GROUP BY property_id, month ORDER BY month
-  `).bind(...params).all() as any
-
-  const { results: budgets } = await c.env.DB.prepare(
-    'SELECT * FROM budgets WHERE year = ?'
-  ).bind(year).all() as any
-
-  return c.json({ income, levies, expenses, mun, budgets, year })
+  return c.json({
+    rentalIncome: grouped.rentalIncome || [],
+    levy: grouped.levy || [],
+    bondPayments: grouped.bondPayments || [],
+    commission: grouped.commission || [],
+    maintenance: grouped.maintenance || [],
+    municipal: grouped.municipal || [],
+    year,
+  })
 })
 
 // ── Budgets ─────────────────────────────────────────────
@@ -851,11 +854,14 @@ app.post('/api/petty-cash/income', async (c) => {
   await c.env.DB.prepare(
     'INSERT INTO petty_cash_income (id, property_id, date, description, amount, category, receipt_url, notes) VALUES (?,?,?,?,?,?,?,?)'
   ).bind(id, body.property_id || null, body.date, body.description, body.amount, body.category || null, body.receipt_url || null, body.notes || null).run()
+  logActivity(c, 'create', 'petty-cash-income', id, body.description)
   return c.json({ id }, 201)
 })
 
 app.delete('/api/petty-cash/income/:id', async (c) => {
-  await c.env.DB.prepare('DELETE FROM petty_cash_income WHERE id = ?').bind(c.req.param('id')).run()
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM petty_cash_income WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'petty-cash-income', id, '')
   return c.json({ ok: true })
 })
 
@@ -865,11 +871,199 @@ app.post('/api/petty-cash/expenses', async (c) => {
   await c.env.DB.prepare(
     'INSERT INTO petty_cash_expenses (id, property_id, date, description, amount, category, vat_inclusive, supplier, receipt_url, notes) VALUES (?,?,?,?,?,?,?,?,?,?)'
   ).bind(id, body.property_id || null, body.date, body.description, body.amount, body.category || null, body.vat_inclusive !== undefined ? (body.vat_inclusive ? 1 : 0) : 1, body.supplier || null, body.receipt_url || null, body.notes || null).run()
+  logActivity(c, 'create', 'petty-cash-expense', id, body.description)
   return c.json({ id }, 201)
 })
 
 app.delete('/api/petty-cash/expenses/:id', async (c) => {
-  await c.env.DB.prepare('DELETE FROM petty_cash_expenses WHERE id = ?').bind(c.req.param('id')).run()
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM petty_cash_expenses WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'petty-cash-expense', id, '')
+  return c.json({ ok: true })
+})
+
+// ── Monthly P/L Actuals (from spreadsheet import) ──────
+app.get('/api/pl-monthly', async (c) => {
+  const pid = c.req.query('property_id')
+  const year = c.req.query('year') || String(new Date().getFullYear())
+  const clause = pid && pid !== 'all' ? 'WHERE property_id = ? AND year = ?' : 'WHERE year = ?'
+  const params: any[] = pid && pid !== 'all' ? [pid, year] : [year]
+  const { results } = await c.env.DB.prepare(
+    'SELECT id, property_id, month, category_key, amount FROM pl_monthly ' + clause + ' ORDER BY property_id, month, category_key'
+  ).bind(...params).all()
+  return c.json(results)
+})
+
+app.put('/api/pl-monthly/:id', async (c) => {
+  const id = c.req.param('id')
+  const { amount } = await c.req.json()
+  await c.env.DB.prepare('UPDATE pl_monthly SET amount = ? WHERE id = ?').bind(amount, id).run()
+  return c.json({ ok: true })
+})
+
+app.post('/api/pl-monthly', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT OR REPLACE INTO pl_monthly (id, property_id, year, month, category_key, amount) VALUES (?,?,?,?,?,?)'
+  ).bind(id, body.property_id || null, body.year, body.month, body.category_key, body.amount || 0).run()
+  return c.json({ id }, 201)
+})
+
+// ── P/L Entries (manual additions) ──────────────────────
+app.get('/api/pl-entries', async (c) => {
+  const pid = c.req.query('property_id')
+  const year = c.req.query('year') || String(new Date().getFullYear())
+  const clause = pid && pid !== 'all' ? 'WHERE property_id = ? AND year = ?' : 'WHERE year = ?'
+  const params: any[] = pid && pid !== 'all' ? [pid, year] : [year]
+  const { results } = await c.env.DB.prepare(
+    'SELECT * FROM pl_entries ' + clause + ' ORDER BY month, category_key, created_at'
+  ).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/pl-entries', async (c) => {
+  const body = await c.req.json()
+  const id = uuid()
+  const { property_id, year, month, category_key, amount, description, deducted_expenses } = body
+  if (!year || !month || !category_key || amount == null) return c.json({ error: 'year, month, category_key, amount required' }, 400)
+  await c.env.DB.prepare(
+    'INSERT INTO pl_entries (id, property_id, year, month, category_key, amount, description, deducted_expenses) VALUES (?,?,?,?,?,?,?,?)'
+  ).bind(id, property_id || null, year, month, category_key, amount, description || '', JSON.stringify(deducted_expenses || [])).run()
+  logActivity(c, 'create', 'pl-entry', id, `Added ${category_key} R${Number(amount).toFixed(2)}`)
+  return c.json({ id }, 201)
+})
+
+app.delete('/api/pl-entries/:id', async (c) => {
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM pl_entries WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'pl-entry', id, '')
+  return c.json({ ok: true })
+})
+
+// ── P/L Data ────────────────────────────────────────────
+app.get('/api/pl', async (c) => {
+  const pid = c.req.query('property_id')
+  const year = c.req.query('year') || String(new Date().getFullYear())
+  const clause = pid && pid !== 'all' ? 'WHERE property_id = ? AND year = ?' : 'WHERE year = ?'
+  const params: any[] = pid && pid !== 'all' ? [pid, year] : [year]
+  const { results } = await c.env.DB.prepare(`SELECT * FROM pl_data ${clause}`).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/pl', async (c) => {
+  const body = await c.req.json()
+  const { property_id, year, category, budget_amount, actual_override } = body
+  if (!year || !category) return c.json({ error: 'year and category required' }, 400)
+
+  const existing = await c.env.DB.prepare(
+    'SELECT id FROM pl_data WHERE property_id IS ? AND year = ? AND category = ?'
+  ).bind(property_id || null, year, category).first() as any
+
+  if (existing) {
+    const sets: string[] = []
+    const vals: any[] = []
+    if (budget_amount !== undefined) { sets.push('budget_amount = ?'); vals.push(budget_amount) }
+    if (actual_override !== undefined) { sets.push('actual_override = ?'); vals.push(actual_override) }
+    sets.push("updated_at = datetime('now')")
+    if (sets.length) {
+      vals.push(existing.id)
+      await c.env.DB.prepare(`UPDATE pl_data SET ${sets.join(', ')} WHERE id = ?`).bind(...vals).run()
+    }
+  } else {
+    const id = uuid()
+    await c.env.DB.prepare(
+      'INSERT INTO pl_data (id, property_id, year, category, budget_amount, actual_override) VALUES (?,?,?,?,?,?)'
+    ).bind(id, property_id || null, year, category, budget_amount ?? null, actual_override ?? null).run()
+  }
+  return c.json({ ok: true })
+})
+
+// ── Debriefs ────────────────────────────────────────────
+app.get('/api/debriefs', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT * FROM debriefs ORDER BY created_at DESC').all()
+  return c.json(results)
+})
+
+app.post('/api/debriefs', async (c) => {
+  const { title, content } = await c.req.json()
+  if (!title) return c.json({ error: 'title is required' }, 400)
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO debriefs (id, title, content) VALUES (?,?,?)'
+  ).bind(id, title, content || '').run()
+  const row = await c.env.DB.prepare('SELECT * FROM debriefs WHERE id = ?').bind(id).first()
+  logActivity(c, 'create', 'debrief', id, title)
+  return c.json(row, 201)
+})
+
+app.put('/api/debriefs/:id', async (c) => {
+  const id = c.req.param('id')
+  const { title, content } = await c.req.json()
+  const sets: string[] = []
+  const params: any[] = []
+  if (title !== undefined) { sets.push('title = ?'); params.push(title) }
+  if (content !== undefined) { sets.push('content = ?'); params.push(content) }
+  if (sets.length) {
+    sets.push("updated_at = datetime('now')")
+    params.push(id)
+    await c.env.DB.prepare(`UPDATE debriefs SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
+  }
+  logActivity(c, 'update', 'debrief', id, title || '')
+  return c.json({ ok: true })
+})
+
+app.delete('/api/debriefs/:id', async (c) => {
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM debriefs WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'debrief', id, '')
+  return c.json({ ok: true })
+})
+
+// ── Tasks ───────────────────────────────────────────────
+app.get('/api/tasks', async (c) => {
+  const status = c.req.query('status')
+  let q = 'SELECT * FROM tasks'
+  const params: any[] = []
+  if (status && status !== 'all') { q += ' WHERE status = ?'; params.push(status) }
+  q += ' ORDER BY created_at DESC'
+  const { results } = await c.env.DB.prepare(q).bind(...params).all()
+  return c.json(results)
+})
+
+app.post('/api/tasks', async (c) => {
+  const { title, description, priority, due_date } = await c.req.json()
+  if (!title) return c.json({ error: 'title is required' }, 400)
+  const id = uuid()
+  await c.env.DB.prepare(
+    'INSERT INTO tasks (id, title, description, priority, due_date) VALUES (?,?,?,?,?)'
+  ).bind(id, title, description || '', priority || 'medium', due_date || null).run()
+  const row = await c.env.DB.prepare('SELECT * FROM tasks WHERE id = ?').bind(id).first()
+  logActivity(c, 'create', 'task', id, title)
+  return c.json(row, 201)
+})
+
+app.put('/api/tasks/:id', async (c) => {
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const sets: string[] = []
+  const params: any[] = []
+  for (const k of ['title', 'description', 'status', 'priority', 'due_date'] as const) {
+    if (k in body) { sets.push(`${k} = ?`); params.push((body as any)[k]) }
+  }
+  if (sets.length) {
+    sets.push("updated_at = datetime('now')")
+    params.push(id)
+    await c.env.DB.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`).bind(...params).run()
+  }
+  logActivity(c, 'update', 'task', id, body.title)
+  return c.json({ ok: true })
+})
+
+app.delete('/api/tasks/:id', async (c) => {
+  const id = c.req.param('id')
+  await c.env.DB.prepare('DELETE FROM tasks WHERE id = ?').bind(id).run()
+  logActivity(c, 'delete', 'task', id, '')
   return c.json({ ok: true })
 })
 
@@ -1012,6 +1206,31 @@ app.post('/api/import/execute', async (c) => {
   })
 })
 
+// ── Activity Log ──────────────────────────────────────────
+async function logActivity(c: any, action: string, entityType: string, entityId: string | null, entityLabel: string, details?: string) {
+  try {
+    const auth = c.req.header('Authorization') || ''
+    const token = auth.replace(/^Bearer\s+/i, '').trim()
+    await c.env.DB.prepare(
+      'INSERT INTO activity_log (id, actor, action, entity_type, entity_id, entity_label, details) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(uuid(), token, action, entityType, entityId, entityLabel, details || '').run()
+  } catch (e) { console.error('logActivity error:', e) }
+}
+
+app.get('/api/activity', async (c) => {
+  const { limit = '50', offset = '0' } = c.req.query()
+  const rows = await c.env.DB.prepare(
+    'SELECT * FROM activity_log ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  ).bind(parseInt(limit), parseInt(offset)).all()
+  const count = await c.env.DB.prepare('SELECT COUNT(*) as total FROM activity_log').all()
+  return c.json({ results: rows.results, total: count.results?.[0]?.total || 0 })
+})
+
+app.delete('/api/activity', async (c) => {
+  await c.env.DB.prepare('DELETE FROM activity_log').run()
+  return c.json({ ok: true })
+})
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url)
@@ -1019,9 +1238,6 @@ export default {
       return app.fetch(request, env, ctx)
     }
     const res = await env.ASSETS.fetch(request)
-    if (res.status === 404 && !url.pathname.includes('.')) {
-      return env.ASSETS.fetch(new Request(new URL('/', url), request))
-    }
     if (res.status === 404 && !url.pathname.includes('.')) {
       return env.ASSETS.fetch(new Request(new URL('/', url), request))
     }

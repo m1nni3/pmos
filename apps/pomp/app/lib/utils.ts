@@ -7,24 +7,31 @@ export function cn(...inputs: ClassValue[]) {
 
 const API_BASE = '/api'
 
-async function api(path: string, opts?: RequestInit) {
+async function api<T = unknown>(path: string, opts?: RequestInit): Promise<T | null> {
   const code = typeof window !== 'undefined' ? sessionStorage.getItem('pomp_auth')?.trim() : null
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (code) headers['Authorization'] = `Bearer ${code}`
   const res = await fetch(`${API_BASE}${path}`, { ...opts, headers: { ...headers, ...opts?.headers } })
-  return res.json()
+  const contentType = res.headers.get('content-type') || ''
+  if (!contentType.includes('application/json')) {
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+    return null
+  }
+  const data = (await res.json()) as T
+  if (!res.ok) throw new Error((data as any)?.error || `HTTP ${res.status}`)
+  return data
 }
 
 export const apiClient = {
-  get: (path: string) => api(path),
-  post: (path: string, data?: any) => api(path, { method: 'POST', body: JSON.stringify(data) }),
-  put: (path: string, data?: any) => api(path, { method: 'PUT', body: JSON.stringify(data) }),
-  del: (path: string) => api(path, { method: 'DELETE' }),
-  delete: (path: string) => api(path, { method: 'DELETE' }),
+  get: <T = unknown>(path: string) => api<T>(path),
+  post: <T = unknown>(path: string, data?: any) => api<T>(path, { method: 'POST', body: JSON.stringify(data) }),
+  put: <T = unknown>(path: string, data?: any) => api<T>(path, { method: 'PUT', body: JSON.stringify(data) }),
+  del: <T = unknown>(path: string) => api<T>(path, { method: 'DELETE' }),
+  delete: <T = unknown>(path: string) => api<T>(path, { method: 'DELETE' }),
 }
 
 export function formatRand(amount: number) {
-  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(amount)
+  return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }).format(Math.ceil(amount))
 }
 
 export function formatDate(date: string) {

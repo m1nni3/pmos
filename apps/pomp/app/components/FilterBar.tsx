@@ -1,5 +1,6 @@
 import React from 'react'
 import { Search } from 'lucide-react'
+import type { Property } from '../types'
 
 export interface FilterBarProps {
   search?: string
@@ -28,7 +29,7 @@ export function FilterBar({ search, onSearchChange, searchPlaceholder = 'Searchâ
   )
 }
 
-export function PropertyFilter({ value, onChange, properties }: { value: string, onChange: (v: string) => void, properties: any[] }) {
+export function PropertyFilter({ value, onChange, properties }: { value: string, onChange: (v: string) => void, properties: Property[] }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
       className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-pomp-blue">

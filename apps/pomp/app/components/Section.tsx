@@ -5,18 +5,23 @@ interface SectionProps {
   subtitle?: string
   children: React.ReactNode
   className?: string
+  card?: boolean
+  action?: React.ReactNode
 }
 
-export function Section({ title, subtitle, children, className = '' }: SectionProps) {
+export function Section({ title, subtitle, children, className = '', card = true, action }: SectionProps) {
   return (
-    <div className={className}>
+    <div className={`${card ? 'bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] overflow-hidden' : ''} mb-6 ${className}`}>
       {title && (
-        <div className="mb-4">
-          <h3 className="font-heading font-semibold text-pomp-navy text-lg">{title}</h3>
-          {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+        <div className={`flex items-center justify-between ${card ? 'px-5 pt-4 pb-3 border-b border-pomp-border/60' : 'mb-3'}`}>
+          <div>
+            <h3 className="font-heading font-semibold text-pomp-navy text-sm">{title}</h3>
+            {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+          </div>
+          {action && <div>{action}</div>}
         </div>
       )}
-      {children}
+      <div className={card ? 'p-5' : ''}>{children}</div>
     </div>
   )
 }

@@ -4,61 +4,78 @@
 
 @layer base {
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { min-height: 100vh; }
+  body { min-height: 100vh; font-size: 15px; }
   h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] p-6;
+    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] p-[18px];
+  }
+  .card-flush {
+    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] overflow-hidden;
+  }
+  .card-header {
+    @apply px-[18px] py-[10px] border-b border-pomp-border/60 flex items-center justify-between;
+  }
+  .card-body {
+    @apply p-[18px];
   }
   .kpi-card {
-    @apply card border-t-4;
+    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] p-[18px] border-t-4;
   }
   .kpi-row {
-    @apply grid grid-cols-2 lg:grid-cols-4 gap-4;
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-[14px] mb-[22px];
   }
   .btn-primary {
-    @apply px-4 py-2 rounded-lg text-white font-medium text-sm
+    @apply px-[14px] py-[6px] rounded-lg text-white font-medium text-sm
       bg-gradient-to-r from-pomp-blue to-pomp-teal
       hover:opacity-90 transition-opacity cursor-pointer;
   }
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg text-gray-700 font-medium text-sm
+    @apply px-[10px] py-[4px] rounded-lg text-gray-600 font-medium text-sm
       border border-pomp-border bg-white
-      hover:bg-gray-50 transition-colors cursor-pointer;
+      hover:bg-gray-50 transition-colors cursor-pointer inline-flex items-center gap-1.5;
   }
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium
+    @apply flex items-center gap-3 px-[10px] py-[6px] rounded-lg text-sm font-medium
       text-white/70 hover:text-white hover:bg-white/5 transition-colors;
   }
   .sidebar-link.active {
-    @apply text-white
-      bg-gradient-to-r from-pomp-blue/15 to-pomp-magenta/15;
+    @apply text-white bg-gradient-to-r from-pomp-blue/20 to-pomp-magenta/10;
   }
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium leading-none;
   }
-  .badge-green { @apply badge bg-green-100 text-green-700; }
+  .badge-green  { @apply badge bg-green-100 text-green-700; }
   .badge-orange { @apply badge bg-orange-100 text-orange-700; }
-  .badge-red { @apply badge bg-red-100 text-red-700; }
-  .badge-blue { @apply badge bg-blue-100 text-blue-700; }
+  .badge-red    { @apply badge bg-red-100 text-red-700; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-700; }
   .badge-purple { @apply badge bg-purple-100 text-purple-700; }
-  .skeleton {
-    @apply bg-gray-200 rounded animate-pulse;
-  }
-  .skeleton-text { @apply skeleton h-4 w-3/4; }
+  .badge-gray   { @apply badge bg-gray-100 text-gray-600; }
+  .skeleton { @apply bg-gray-200 rounded animate-pulse; }
+  .skeleton-text    { @apply skeleton h-4 w-3/4; }
   .skeleton-heading { @apply skeleton h-6 w-1/2; }
-  .skeleton-kpi { @apply skeleton h-20 w-full; }
+  .skeleton-kpi     { @apply skeleton h-20 w-full; }
+  .amount-positive { @apply tabular-nums font-medium text-green-600; }
+  .amount-negative { @apply tabular-nums font-medium text-red-600; }
+  .amount-neutral  { @apply tabular-nums font-medium text-pomp-navy; }
+  .page-title { @apply font-heading text-xl font-bold text-pomp-navy; }
+  .page-sub   { @apply text-xs text-gray-400 mt-0.5; }
+  .tab-bar { @apply flex gap-0.5 border-b border-pomp-border overflow-x-auto mb-[18px]; }
+  .tab-item {
+    @apply px-[14px] py-[6px] text-sm font-medium -mb-px border-b-2 transition-colors whitespace-nowrap;
+  }
+  .tab-item-active   { @apply border-pomp-blue text-pomp-blue; }
+  .tab-item-inactive { @apply border-transparent text-gray-500 hover:text-pomp-navy; }
+  .dl-row { @apply flex justify-between gap-4 py-1.5 border-b border-pomp-border/40 last:border-0; }
+  .dl-label { @apply text-xs text-gray-400 shrink-0; }
+  .dl-value { @apply text-sm font-medium text-right; }
 }
 
 @media (max-width: 1023px) {
-  .kpi-row {
-    @apply grid grid-cols-2 gap-3;
-  }
+  .kpi-row { @apply grid-cols-2 gap-[10px]; }
 }
 @media (max-width: 639px) {
-  .kpi-row {
-    @apply grid grid-cols-1 gap-3;
-  }
+  .kpi-row { @apply grid-cols-1 gap-[10px]; }
 }

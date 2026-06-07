@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 
 export default function Login() {
   const [code, setCode] = useState('')
@@ -11,13 +12,12 @@ export default function Login() {
     setLoading(true)
     try {
       const res = await fetch(`/api/auth?code=${encodeURIComponent(code)}`, { method: 'POST' })
-      const data = await res.json()
+      const data = (await res.json()) as { ok?: boolean; token?: string }
       if (data.ok) {
         // Store trimmed token to avoid whitespace issues
         sessionStorage.setItem('pomp_auth', (data.token || code).trim())
-        // Use timeout to ensure sessionStorage is set before redirecting
         setTimeout(() => {
-          window.location.replace('/overview')
+          window.location.replace('/properties')
         }, 0)
       } else {
         setError('Invalid access code')

@@ -1,38 +1,54 @@
-import React, { useState, lazy, Suspense } from 'react'
+import React, { useState, lazy, Suspense, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router'
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router'
 import {
-  LayoutDashboard, Building2, Landmark, UserCheck, ShieldCheck,
-  Banknote, Wrench, Scale, Phone, FolderOpen, LogOut, FileText, Menu, X,
-  Settings as SettingsIcon, Upload, TrendingDown, Wallet, Globe, ChevronDown,
+  Building2, Phone, Landmark, Wallet, Globe,
+  LogOut, Menu, X, ShieldCheck,
+  MessageSquare, CheckSquare, Clock,
 } from 'lucide-react'
+import { Toaster } from 'sonner'
 import './styles.css'
 import { CacheProvider } from './lib/cache'
+import { ErrorBoundary } from './components'
+import { useNotificationCount } from './lib/useNotificationCount'
 
-const Overview       = lazy(() => import('./routes/overview'))
 const Properties     = lazy(() => import('./routes/properties'))
 const Finances       = lazy(() => import('./routes/finances'))
-const LettingAgent   = lazy(() => import('./routes/letting'))
-const Management     = lazy(() => import('./routes/management'))
-const LeviesBanking  = lazy(() => import('./routes/levies'))
-const Bonds          = lazy(() => import('./routes/bonds'))
-const Insurance      = lazy(() => import('./routes/insurance'))
-const Maintenance    = lazy(() => import('./routes/maintenance'))
-const Reconciliation = lazy(() => import('./routes/reconciliation'))
-const Pnl            = lazy(() => import('./routes/pnl'))
 const Contacts       = lazy(() => import('./routes/contacts'))
-const Documents      = lazy(() => import('./routes/documents'))
-const Reports        = lazy(() => import('./routes/reports'))
+const Governance     = lazy(() => import('./routes/governance'))
 const PettyCash      = lazy(() => import('./routes/petty-cash'))
+
+const Debrief        = lazy(() => import('./routes/debrief'))
+const Tasks          = lazy(() => import('./routes/tasks'))
 const Portals        = lazy(() => import('./routes/portals'))
-const Settings       = lazy(() => import('./routes/settings'))
-const Import         = lazy(() => import('./routes/import'))
+const ActivityPage   = lazy(() => import('./routes/activity'))
 import Login from './routes/login'
 
 function PageLoader() {
   return (
     <div className="flex items-center justify-center p-12">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pomp-navy"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pomp-blue"></div>
+    </div>
+  )
+}
+
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const [display, setDisplay] = React.useState(children)
+  const [anim, setAnim] = React.useState('opacity-100')
+
+  useEffect(() => {
+    setAnim('opacity-0 translate-y-1')
+    const timer = setTimeout(() => {
+      setDisplay(children)
+      setAnim('opacity-100 translate-y-0')
+    }, 120)
+    return () => clearTimeout(timer)
+  }, [location.pathname])
+
+  return (
+    <div className={`transition-all duration-200 ease-out ${anim}`}>
+      {display}
     </div>
   )
 }
@@ -42,29 +58,20 @@ const sections = [
     label: 'Prop Portfolio',
     items: [
       { name: 'Properties', path: '/properties', icon: Building2 },
-      { name: 'Management', path: '/management', icon: ShieldCheck },
-      { name: 'Bonds', path: '/bonds', icon: Scale },
-      { name: 'Insurance', path: '/insurance', icon: ShieldCheck },
-      { name: 'Contacts', path: '/contacts', icon: Phone },
-      { name: 'Letting', path: '/letting', icon: UserCheck },
+      { name: 'Contacts',   path: '/contacts',   icon: Phone },
     ],
   },
   {
     label: 'Financials',
     items: [
-      { name: 'Overview', path: '/overview', icon: LayoutDashboard },
-      { name: 'Finances', path: '/finances', icon: Landmark },
-      { name: 'Levies & Banking', path: '/levies', icon: Banknote },
-      { name: 'Maintenance', path: '/maintenance', icon: Wrench },
-      { name: 'Reconciliation', path: '/reconciliation', icon: Scale },
-      { name: 'P&L', path: '/pnl', icon: TrendingDown },
-      { name: 'Documents', path: '/documents', icon: FolderOpen },
-      { name: 'Reports', path: '/reports', icon: FileText },
+      { name: 'P / L', path: '/finances', icon: Landmark },
     ],
   },
   {
     label: 'Governance',
-    items: [],
+    items: [
+      { name: 'Governance', path: '/governance', icon: ShieldCheck },
+    ],
   },
   {
     label: 'Oversight',
@@ -73,24 +80,31 @@ const sections = [
     ],
   },
   {
-    label: 'Settings',
+    label: 'Operations',
     items: [
-      { name: 'Settings', path: '/settings', icon: SettingsIcon },
-      { name: 'Import', path: '/import', icon: Upload },
+      { name: 'Debrief', path: '/debrief', icon: MessageSquare },
+      { name: 'Tasks',   path: '/tasks',   icon: CheckSquare },
+    ],
+  },
+  {
+    label: 'Portals',
+    items: [
       { name: 'Portals', path: '/portals', icon: Globe },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { name: 'Activity', path: '/activity', icon: Clock },
     ],
   },
 ]
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    'Prop Portfolio': true,
-    'Financials': true,
-    'Oversight': true,
-    'Settings': true,
-  })
-  const authed = typeof window !== 'undefined' && sessionStorage.getItem('pomp_auth')?.trim() !== ''
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('pomp_auth') : null
+  const authed = typeof token === 'string' && token.trim().length > 0
+  const activityCount = useNotificationCount()
   if (!authed) return <Navigate to="/login" replace />
 
   return (
@@ -107,16 +121,10 @@ function Layout() {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {sections.map(section => (
             <div key={section.label}>
-              <button
-                onClick={() => setOpenSections(prev => ({ ...prev, [section.label]: !prev[section.label] }))}
-                className="flex items-center justify-between w-full text-white/50 text-xs uppercase tracking-wider font-semibold px-2 py-2 hover:text-white/80 transition-colors"
-              >
+              <div className="text-white/50 text-xs uppercase tracking-wider font-semibold px-2 py-2">
                 {section.label}
-                {section.items.length > 0 && (
-                  <ChevronDown size={14} className={`transition-transform ${openSections[section.label] ? 'rotate-0' : '-rotate-90'}`} />
-                )}
-              </button>
-              {openSections[section.label] && section.items.map(item => (
+              </div>
+              {section.items.map(item => (
                 <NavLink
                   key={item.path}
                   to={item.path}
@@ -125,6 +133,11 @@ function Layout() {
                 >
                   <item.icon size={18} />
                   <span>{item.name}</span>
+                  {item.path === '/activity' && activityCount > 0 && (
+                    <span className="ml-auto bg-pomp-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
+                      {activityCount > 99 ? '99+' : activityCount}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -140,35 +153,30 @@ function Layout() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
           <button onClick={() => setSidebarOpen(true)} className="text-gray-600 hover:text-pomp-navy p-1"><Menu size={20} /></button>
           <span className="font-heading font-bold text-pomp-navy">P.O.M.P</span>
         </div>
-        <div className="p-4 lg:p-6">
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/overview"       element={<Overview />} />
-              <Route path="/properties"     element={<Properties />} />
-              <Route path="/finances"       element={<Finances />} />
-              <Route path="/letting"        element={<LettingAgent />} />
-              <Route path="/management"     element={<Management />} />
-              <Route path="/levies"         element={<LeviesBanking />} />
-              <Route path="/bonds"          element={<Bonds />} />
-              <Route path="/insurance"      element={<Insurance />} />
-              <Route path="/maintenance"    element={<Maintenance />} />
-              <Route path="/reconciliation" element={<Reconciliation />} />
-              <Route path="/pnl"            element={<Pnl />} />
-              <Route path="/contacts"       element={<Contacts />} />
-              <Route path="/documents"      element={<Documents />} />
-              <Route path="/reports"        element={<Reports />} />
-              <Route path="/petty-cash"     element={<PettyCash />} />
-              <Route path="/settings"       element={<Settings />} />
-              <Route path="/import"         element={<Import />} />
-              <Route path="/portals"        element={<Portals />} />
-              <Route path="*" element={<Navigate to="/overview" replace />} />
-            </Routes>
-          </Suspense>
+        <div className="p-4 lg:p-6 flex-1 flex flex-col min-h-0">
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <PageTransition>
+                <Routes>
+                  <Route path="/properties" element={<Properties />} />
+                  <Route path="/finances"   element={<Finances />} />
+                  <Route path="/contacts"   element={<Contacts />} />
+                  <Route path="/governance" element={<Governance />} />
+                  <Route path="/petty-cash" element={<PettyCash />} />
+                  <Route path="/debrief"   element={<Debrief />} />
+                  <Route path="/tasks"     element={<Tasks />} />
+                  <Route path="/portals"   element={<Portals />} />
+                  <Route path="/activity" element={<ActivityPage />} />
+                  <Route path="*"          element={<Navigate to="/properties" replace />} />
+                </Routes>
+              </PageTransition>
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
     </div>
@@ -179,6 +187,15 @@ function App() {
   return (
     <BrowserRouter>
       <CacheProvider>
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            duration: 4000,
+            style: { fontSize: '14px' },
+          }}
+        />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={<Layout />} />
