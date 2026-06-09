@@ -4,45 +4,51 @@
 
 @layer base {
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { min-height: 100vh; font-size: 15px; }
+  body { min-height: 100vh; font-size: 16px; }
   h1, h2, h3, h4 { font-family: 'Poppins', sans-serif; }
 }
 
 @layer components {
   .card {
-    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] p-[18px];
+    @apply bg-white rounded-card shadow-[0_0.3rem_1rem_rgba(0,0,0,.06)] p-[14px];
   }
   .card-flush {
-    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] overflow-hidden;
+    @apply bg-white rounded-card shadow-[0_0.3rem_1rem_rgba(0,0,0,.06)] overflow-hidden;
   }
   .card-header {
-    @apply px-[18px] py-[10px] border-b border-pomp-border/60 flex items-center justify-between;
+    @apply px-[14px] py-[8px] border-b border-pomp-border/60 flex items-center justify-between;
   }
   .card-body {
-    @apply p-[18px];
+    @apply p-[14px];
   }
   .kpi-card {
-    @apply bg-white rounded-card shadow-[0_0.4rem_1.2rem_rgba(0,0,0,.06)] p-[18px] border-t-4;
+    @apply bg-white rounded-card shadow-[0_0.3rem_1rem_rgba(0,0,0,.06)] p-[14px] border-t-4;
   }
   .kpi-row {
-    @apply grid grid-cols-2 lg:grid-cols-4 gap-[14px] mb-[22px];
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-[12px] mb-[18px];
   }
   .btn-primary {
-    @apply px-[14px] py-[6px] rounded-lg text-white font-medium text-sm
-      bg-gradient-to-r from-pomp-blue to-pomp-teal
+    @apply px-[14px] py-[7px] rounded-lg text-white font-semibold text-sm
       hover:opacity-90 transition-opacity cursor-pointer;
+    background: linear-gradient(135deg, #1E88FF, #7A2CFF);
   }
   .btn-secondary {
-    @apply px-[10px] py-[4px] rounded-lg text-gray-600 font-medium text-sm
+    @apply px-[10px] py-[5px] rounded-lg text-pomp-slate font-medium text-sm
       border border-pomp-border bg-white
-      hover:bg-gray-50 transition-colors cursor-pointer inline-flex items-center gap-1.5;
+      hover:bg-pomp-light transition-colors cursor-pointer inline-flex items-center gap-1.5;
+  }
+  .btn-add {
+    @apply px-[14px] py-[7px] rounded-lg text-white font-semibold text-sm
+      flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer;
+    background: linear-gradient(135deg, #43D000, #1E88FF);
   }
   .sidebar-link {
     @apply flex items-center gap-3 px-[10px] py-[6px] rounded-lg text-sm font-medium
       text-white/70 hover:text-white hover:bg-white/5 transition-colors;
   }
   .sidebar-link.active {
-    @apply text-white bg-gradient-to-r from-pomp-blue/20 to-pomp-magenta/10;
+    @apply text-white;
+    background: linear-gradient(90deg, rgba(30,136,255,0.25), rgba(122,44,255,0.15));
   }
   .badge {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium leading-none;
@@ -57,20 +63,20 @@
   .skeleton-text    { @apply skeleton h-4 w-3/4; }
   .skeleton-heading { @apply skeleton h-6 w-1/2; }
   .skeleton-kpi     { @apply skeleton h-20 w-full; }
-  .amount-positive { @apply tabular-nums font-medium text-green-600; }
-  .amount-negative { @apply tabular-nums font-medium text-red-600; }
-  .amount-neutral  { @apply tabular-nums font-medium text-pomp-navy; }
-  .page-title { @apply font-heading text-xl font-bold text-pomp-navy; }
-  .page-sub   { @apply text-xs text-gray-400 mt-0.5; }
-  .tab-bar { @apply flex gap-0.5 border-b border-pomp-border overflow-x-auto mb-[18px]; }
+  .amount-positive { @apply tabular-nums font-semibold text-[#43D000]; }
+  .amount-negative { @apply tabular-nums font-semibold text-[#FF5A4D]; }
+  .amount-neutral  { @apply tabular-nums font-semibold text-pomp-navy; }
+  .page-title { @apply font-heading text-2xl font-bold text-pomp-navy; }
+  .page-sub   { @apply text-sm text-pomp-gray mt-0.5; }
+  .tab-bar { @apply flex gap-0.5 border-b border-pomp-border overflow-x-auto mb-[14px]; }
   .tab-item {
-    @apply px-[14px] py-[6px] text-sm font-medium -mb-px border-b-2 transition-colors whitespace-nowrap;
+    @apply px-[14px] py-[7px] text-sm font-semibold -mb-px border-b-2 transition-colors whitespace-nowrap;
   }
-  .tab-item-active   { @apply border-pomp-blue text-pomp-blue; }
-  .tab-item-inactive { @apply border-transparent text-gray-500 hover:text-pomp-navy; }
+  .tab-item-active   { @apply border-[#1E88FF] text-[#1E88FF]; }
+  .tab-item-inactive { @apply border-transparent text-pomp-gray hover:text-pomp-navy; }
   .dl-row { @apply flex justify-between gap-4 py-1.5 border-b border-pomp-border/40 last:border-0; }
-  .dl-label { @apply text-xs text-gray-400 shrink-0; }
-  .dl-value { @apply text-sm font-medium text-right; }
+  .dl-label { @apply text-sm text-pomp-gray shrink-0; }
+  .dl-value { @apply text-sm font-semibold text-right; }
 }
 
 @media (max-width: 1023px) {
