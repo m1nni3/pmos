@@ -30,7 +30,7 @@
   .btn-primary {
     @apply px-[14px] py-[7px] rounded-lg text-white font-semibold text-sm
       hover:opacity-90 transition-opacity cursor-pointer;
-    background: linear-gradient(135deg, #1E88FF, #7A2CFF);
+    background: linear-gradient(135deg, #1ABB9C, #7A2CFF);
   }
   .btn-secondary {
     @apply px-[10px] py-[5px] rounded-lg text-pomp-slate font-medium text-sm
@@ -40,7 +40,7 @@
   .btn-add {
     @apply px-[14px] py-[7px] rounded-lg text-white font-semibold text-sm
       flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer;
-    background: linear-gradient(135deg, #43D000, #1E88FF);
+    background: linear-gradient(135deg, #43D000, #1ABB9C);
   }
   .sidebar-link {
     @apply flex items-center gap-3 px-[10px] py-[6px] rounded-lg text-sm font-medium
@@ -48,7 +48,7 @@
   }
   .sidebar-link.active {
     @apply text-white;
-    background: linear-gradient(90deg, rgba(30,136,255,0.25), rgba(122,44,255,0.15));
+    background: linear-gradient(90deg, rgba(26,187,156,0.25), rgba(122,44,255,0.15));
   }
   .badge {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium leading-none;
@@ -72,7 +72,7 @@
   .tab-item {
     @apply px-[14px] py-[7px] text-sm font-semibold -mb-px border-b-2 transition-colors whitespace-nowrap;
   }
-  .tab-item-active   { @apply border-[#1E88FF] text-[#1E88FF]; }
+  .tab-item-active   { @apply border-[#1ABB9C] text-[#1ABB9C]; }
   .tab-item-inactive { @apply border-transparent text-pomp-gray hover:text-pomp-navy; }
   .dl-row { @apply flex justify-between gap-4 py-1.5 border-b border-pomp-border/40 last:border-0; }
   .dl-label { @apply text-sm text-pomp-gray shrink-0; }

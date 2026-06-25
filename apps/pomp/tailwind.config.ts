@@ -15,7 +15,7 @@ export default {
       colors: {
         pomp: {
           // Primary brand
-          blue:    '#1E88FF',
+          blue:    '#1ABB9C',
           green:   '#43D000',
           orange:  '#FF8A00',
           pink:    '#FF2D95',
@@ -41,7 +41,7 @@ export default {
         },
       },
       backgroundImage: {
-        'brand-gradient': 'linear-gradient(135deg, #1E88FF 0%, #43D000 25%, #FF8A00 50%, #FF2D95 75%, #7A2CFF 100%)',
+        'brand-gradient': 'linear-gradient(135deg, #1ABB9C 0%, #43D000 25%, #FF8A00 50%, #FF2D95 75%, #7A2CFF 100%)',
       },
       borderRadius: {
         card: '1rem',
