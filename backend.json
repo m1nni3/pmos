@@ -1,0 +1,38 @@
+{
+  "version": "b8892",
+  "backend": "macos-x64",
+  "models": {
+    "maxConcurrentlyLoadedModels": 1,
+    "fit": true
+  },
+  "performance": {
+    "threads": 4,
+    "threadsBatch": 4,
+    "parallelSequences": 1,
+    "continuousBatching": false,
+    "contextShift": true,
+    "uBatchSize": 128,
+    "maxTokensToPredict": 512,
+    "timeoutSeconds": 900
+  },
+  "memory": {
+    "disableMmap": false,
+    "mLock": false,
+    "promptCacheRamMiB": 256,
+    "cacheReuse": true,
+    "fullSWACache": false,
+    "keepFirstNTokens": 256
+  },
+  "gpu": {
+    "splitMode": "layer",
+    "mainGpuIndex": 0,
+    "flashAttention": "auto"
+  },
+  "kvCache": {
+    "kType": "f16",
+    "vType": "f16"
+  },
+  "rope": {
+    "scalingMethod": "none"
+  }
+}
