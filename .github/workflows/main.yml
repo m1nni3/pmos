@@ -1,0 +1,29 @@
+- name: Fetch through merge-base
+  # You may pin to the exact commit or the version.
+  # uses: fulcrumgenomics/fetch-through-merge-base@8cae4af747a924d5faaf347c8b03d18cdb64e2e8
+  uses: fulcrumgenomics/fetch-through-merge-base@v1.4.2
+  with:
+    # The base ref or target branch in the workflow run.  If empty or  not defined, the `fallback-base-ref` input ref will be used.
+
+    base-ref: # optional, default is ${{ github.base_ref }}
+    # The head ref or source branch in the workflow run.  If empty or not defined, the `fallback-head-ref` input ref will be used.
+
+    head-ref: # optional, default is ${{ github.head_ref }}
+    # The base ref to use when `base-ref` is empty or not defined.  For example, when using `github.base_ref` for `base-ref`, and the workflow is not a `pull_request` or `pull_request_target`, then the `base-ref` is not defined, so this ref will be used.
+
+    fallback-base-ref: # optional, default is main
+    # The head ref to use when `head-ref` is empty or not defined.  For example, when using `github.head_ref` for `head-ref`, and the workflow is not a `pull_request` or `pull_request_target`, then the `head-ref` is not defined, so this ref will be used.
+
+    fallback-head-ref: # optional, default is ${{ github.sha }}
+    # The number of commits to increase from the tip of each base and ref history when `git merge-base` fails to find the common ancestor of  the two commits.
+
+    deepen-length: # optional, default is 10
+    # The number of attempts to deepen before the action fails.
+
+    fail-after: # optional, default is 100
+    # The working directory to switch to when runnign this action.
+
+    working-directory: # optional, default is ./
+    # True to fetch all commits if number of attempts to deepen reaches  its limit, false to fail the action.
+
+    fallback-fetch-all: # optional
