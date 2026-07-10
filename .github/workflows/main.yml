@@ -1,3 +1,5 @@
+//
+{
 - name: Fetch through merge-base
   # You may pin to the exact commit or the version.
   # uses: fulcrumgenomics/fetch-through-merge-base@8cae4af747a924d5faaf347c8b03d18cdb64e2e8
