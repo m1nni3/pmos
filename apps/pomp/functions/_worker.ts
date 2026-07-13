@@ -18,16 +18,9 @@ app.use('/api/*', cors({
 // ── Helpers ──────────────────────────────────────────────
 function uuid() { return crypto.randomUUID() }
 
-function getPeriod(date: string) {
-  const d = new Date(date)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
 // Properties excluded from portal display (data retained in DB)
 const HIDDEN_PROPERTIES = ['p1000000-0000-0000-0000-000000000005', 'p1000000-0000-0000-0000-000000000006', 'p1000000-0000-0000-0000-000000000007']
 const HIDDEN_PROPS_SQL = HIDDEN_PROPERTIES.map(() => '?').join(',')
-
-// ── Health ────────────────────────────────────────────────
 
 // ── Health ────────────────────────────────────────────────
 app.get('/api/health', async (c) => {

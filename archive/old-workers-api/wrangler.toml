@@ -1,9 +1,0 @@
-name = "pmos-api"
-main = "src/index.ts"
-compatibility_date = "2025-04-01"
-workers_dev = true
-
-[[d1_databases]]
-binding = "DB"
-database_name = "binos"
-database_id = "26851040-21fd-4b65-b0fe-bfbf2dea77f7"
