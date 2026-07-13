@@ -4,12 +4,14 @@ import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 're
 import {
   Building2, Phone, Landmark, Wallet, Globe,
   LogOut, Menu, X, ShieldCheck,
-  MessageSquare, CheckSquare,
+  MessageSquare, CheckSquare, Clock,
 } from 'lucide-react'
 import { Toaster } from 'sonner'
 import './styles.css'
 import { CacheProvider } from './lib/cache'
 import { ErrorBoundary } from './components'
+import { useNotificationCount } from './lib/useNotificationCount'
+
 const Properties     = lazy(() => import('./routes/properties'))
 const Finances       = lazy(() => import('./routes/finances'))
 const Contacts       = lazy(() => import('./routes/contacts'))
@@ -19,6 +21,8 @@ const PettyCash      = lazy(() => import('./routes/petty-cash'))
 const Debrief        = lazy(() => import('./routes/debrief'))
 const Tasks          = lazy(() => import('./routes/tasks'))
 const Portals        = lazy(() => import('./routes/portals'))
+const ActivityPage   = lazy(() => import('./routes/activity'))
+import Login from './routes/login'
 
 function PageLoader() {
   return (
@@ -88,10 +92,20 @@ const sections = [
       { name: 'Portals', path: '/portals', icon: Globe },
     ],
   },
+  {
+    label: 'System',
+    items: [
+      { name: 'Activity', path: '/activity', icon: Clock },
+    ],
+  },
 ]
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const token = typeof window !== 'undefined' ? sessionStorage.getItem('pomp_auth') : null
+  const authed = typeof token === 'string' && token.trim().length > 0
+  const activityCount = useNotificationCount()
+  if (!authed) return <Navigate to="/login" replace />
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -119,6 +133,11 @@ function Layout() {
                 >
                   <item.icon size={18} />
                   <span>{item.name}</span>
+                  {item.path === '/activity' && activityCount > 0 && (
+                    <span className="ml-auto bg-pomp-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-tight">
+                      {activityCount > 99 ? '99+' : activityCount}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -126,7 +145,7 @@ function Layout() {
         </nav>
         <div className="p-3 border-t border-white/10">
           <button
-            onClick={() => { window.location.href = '/' }}
+            onClick={() => { sessionStorage.removeItem('pomp_auth'); window.location.href = '/login' }}
             className="sidebar-link w-full"
           >
             <LogOut size={18} />
@@ -152,6 +171,7 @@ function Layout() {
                   <Route path="/debrief"   element={<Debrief />} />
                   <Route path="/tasks"     element={<Tasks />} />
                   <Route path="/portals"   element={<Portals />} />
+                  <Route path="/activity" element={<ActivityPage />} />
                   <Route path="*"          element={<Navigate to="/properties" replace />} />
                 </Routes>
               </PageTransition>
@@ -177,6 +197,7 @@ function App() {
           }}
         />
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route path="/*" element={<Layout />} />
         </Routes>
       </CacheProvider>
