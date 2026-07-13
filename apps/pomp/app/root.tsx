@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router'
 import {
   Building2, Phone, Landmark, Wallet, Globe,
-  LogOut, Menu, X, ShieldCheck,
+  Menu, X, ShieldCheck,
   MessageSquare, CheckSquare, Clock,
 } from 'lucide-react'
 import { Toaster } from 'sonner'
@@ -22,7 +22,6 @@ const Debrief        = lazy(() => import('./routes/debrief'))
 const Tasks          = lazy(() => import('./routes/tasks'))
 const Portals        = lazy(() => import('./routes/portals'))
 const ActivityPage   = lazy(() => import('./routes/activity'))
-import Login from './routes/login'
 
 function PageLoader() {
   return (
@@ -102,10 +101,7 @@ const sections = [
 
 function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('pomp_auth') : null
-  const authed = typeof token === 'string' && token.trim().length > 0
   const activityCount = useNotificationCount()
-  if (!authed) return <Navigate to="/login" replace />
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -143,15 +139,6 @@ function Layout() {
             </div>
           ))}
         </nav>
-        <div className="p-3 border-t border-white/10">
-          <button
-            onClick={() => { sessionStorage.removeItem('pomp_auth'); window.location.href = '/login' }}
-            className="sidebar-link w-full"
-          >
-            <LogOut size={18} />
-            <span>Sign Out</span>
-          </button>
-        </div>
       </aside>
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
@@ -197,7 +184,6 @@ function App() {
           }}
         />
         <Routes>
-          <Route path="/login" element={<Login />} />
           <Route path="/*" element={<Layout />} />
         </Routes>
       </CacheProvider>

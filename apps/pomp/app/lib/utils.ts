@@ -8,9 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 const API_BASE = '/api'
 
 async function api<T = unknown>(path: string, opts?: RequestInit): Promise<T | null> {
-  const code = typeof window !== 'undefined' ? sessionStorage.getItem('pomp_auth')?.trim() : null
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (code) headers['Authorization'] = `Bearer ${code}`
   const res = await fetch(`${API_BASE}${path}`, { ...opts, headers: { ...headers, ...opts?.headers } })
   const contentType = res.headers.get('content-type') || ''
   if (!contentType.includes('application/json')) {

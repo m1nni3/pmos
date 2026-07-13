@@ -16,9 +16,6 @@
       "database_id": "22148433-47f9-402a-ab0f-9e183d5097d0"
     }
   ],
-  "vars": {
-    "ACCESS_CODE": "pomp123"
-  },
   "observability": {
     "enabled": true
   }

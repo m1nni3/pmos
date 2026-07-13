@@ -3,7 +3,6 @@ import { cors } from 'hono/cors'
 
 interface Env {
   DB: D1Database
-  ACCESS_CODE?: string
   ASSETS: Fetcher
 }
 
@@ -21,55 +20,6 @@ function uuid() { return crypto.randomUUID() }
 // Properties excluded from portal display (data retained in DB)
 const HIDDEN_PROPERTIES = ['p1000000-0000-0000-0000-000000000005', 'p1000000-0000-0000-0000-000000000006', 'p1000000-0000-0000-0000-000000000007']
 const HIDDEN_PROPS_SQL = HIDDEN_PROPERTIES.map(() => '?').join(',')
-
-// ── Auth ────────────────────────────────────────────────
-app.use('/api/*', async (c, next) => {
-  if (c.req.method === 'OPTIONS') return next()
-  const path = c.req.path
-  if (path === '/api/auth' || path === '/api/health' || path.startsWith('/api/import/')) return next()
-
-  // Cloudflare Access: if the JWT header is present, CF Access already verified the user
-  const cfAccessJwt = c.req.header('Cf-Access-Jwt-Assertion')
-  if (cfAccessJwt) return next()
-
-  // Fallback: access code via query or bearer token (dev mode)
-  const code = c.req.query('code')
-  const expected = c.env.ACCESS_CODE || 'pomp123'
-  if (code && code === expected) return next()
-  const auth = c.req.header('Authorization')
-  if (auth) {
-    const token = auth.replace(/^Bearer\s+/i, '').trim()
-    if (token === expected) return next()
-  }
-
-  return c.json({ error: 'unauthorized' }, 401)
-})
-
-app.post('/api/auth', async (c) => {
-  // If Cloudflare Access is active, auth is handled externally — just return ok
-  const cfAccessJwt = c.req.header('Cf-Access-Jwt-Assertion')
-  if (cfAccessJwt) {
-    logActivity(c, 'login', 'auth', null, 'User login', 'cf-access')
-    return c.json({ ok: true, method: 'cf-access' })
-  }
-
-  const code = c.req.query('code')
-  const expected = c.env.ACCESS_CODE || 'pomp123'
-  if (code && code === expected) {
-    logActivity(c, 'login', 'auth', null, 'User login', 'code')
-    return c.json({ ok: true, token: expected })
-  }
-
-  try {
-    const body = await c.req.json()
-    if (body.code && body.code === expected) {
-      logActivity(c, 'login', 'auth', null, 'User login', 'body')
-      return c.json({ ok: true, token: expected })
-    }
-  } catch {}
-
-  return c.json({ error: 'invalid code' }, 401)
-})
 
 // ── Health ────────────────────────────────────────────────
 app.get('/api/health', async (c) => {
